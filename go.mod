@@ -1,4 +1,4 @@
-module opsassit
+module github.com/violinorg/opsassit
 
 go 1.20
 
