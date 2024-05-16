@@ -1,11 +1,11 @@
 package cmd
 
 import (
-	"ConfigGuard/actions"
 	"fmt"
 	"os"
 
 	"github.com/urfave/cli/v2"
+	"opsassit/actions"
 )
 
 func DiffValuesCmd() *cli.Command {

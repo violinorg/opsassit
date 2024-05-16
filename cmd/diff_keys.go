@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/urfave/cli/v2"
+	"opsassit/actions"
 )
 
 func DiffKeysCmd() *cli.Command {
