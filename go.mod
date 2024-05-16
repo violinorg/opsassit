@@ -1,4 +1,4 @@
-module ConfigGuard
+module opsassit
 
 go 1.20
 
