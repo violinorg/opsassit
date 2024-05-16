@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"gitlab.violinorg.ru/dsidyuk/opsassist/cmd"
+	"github.com/violinorg/opsassit/cmd"
 )
 
 func main() {
