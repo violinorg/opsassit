@@ -2,13 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-
 	"github.com/urfave/cli/v2"
-	"opsassit/actions"
+	"github.com/violinorg/opsassit/actions"
+	"os"
 )
 
-func DiffValuesCmd() *cli.Command {
+func diffValuesCmd() *cli.Command {
 	return &cli.Command{
 		Name:      "values",
 		Usage:     "Compare the values of two YAML files",

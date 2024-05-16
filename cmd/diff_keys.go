@@ -2,13 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-
 	"github.com/urfave/cli/v2"
-	"opsassit/actions"
+	"github.com/violinorg/opsassit/actions"
+	"os"
 )
 
-func DiffKeysCmd() *cli.Command {
+func diffKeysCmd() *cli.Command {
 	return &cli.Command{
 		Name:      "keys",
 		Usage:     "Compare the keys of two YAML files",

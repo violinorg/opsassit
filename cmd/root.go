@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/urfave/cli/v2"
 )
 
 var commands = []*cli.Command{
-	DiffValuesCmd(),
-	DiffKeysCmd(),
+	diffValuesCmd(),
+	diffKeysCmd(),
 }
 
 func CreateApp() *cli.App {
