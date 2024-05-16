@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/violinorg/opsassit/actions"
+	"opsassit/actions"
 )
 
 func TestLoadVariablesFromYAML(t *testing.T) {
