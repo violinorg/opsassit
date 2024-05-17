@@ -10,8 +10,8 @@ type GitLabClient struct {
 	client *gitlab.Client
 }
 
-func NewGitLabClient(token string) (*GitLabClient, error) {
-	client, err := gitlab.NewClient(token)
+func NewGitLabClient(url, token string) (*GitLabClient, error) {
+	client, err := gitlab.NewClient(token, gitlab.WithBaseURL(url))
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,6 @@ func (g *GitLabClient) CreateMergeRequest(projectID int, sourceBranch, targetBra
 		SourceBranch: gitlab.String(sourceBranch),
 		TargetBranch: gitlab.String(targetBranch),
 		Title:        gitlab.String(title),
-		// Draft field does not exist in go-gitlab package, use WIP prefix in title instead
 	})
 	if err != nil {
 		return err

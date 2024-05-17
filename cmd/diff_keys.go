@@ -20,6 +20,7 @@ func diffKeysCmd() *cli.Command {
 
 			file1Path := c.Args().Get(0)
 			file2Path := c.Args().Get(1)
+			gitlabURL := c.String("gitlab-url")
 			gitlabToken := c.String("gitlab-token")
 			projectID := c.Int("project-id")
 			baseBranch := c.String("base-branch")
@@ -47,7 +48,7 @@ func diffKeysCmd() *cli.Command {
 				os.Exit(1)
 			}
 
-			gitlabClient, err := actions.NewGitLabClient(gitlabToken)
+			gitlabClient, err := actions.NewGitLabClient(gitlabURL, gitlabToken)
 			if err != nil {
 				fmt.Printf("Error creating GitLab client: %v\n", err)
 				os.Exit(1)
@@ -80,6 +81,11 @@ func diffKeysCmd() *cli.Command {
 			return nil
 		},
 		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:     "gitlab-url",
+				Usage:    "GitLab URL",
+				Required: true,
+			},
 			&cli.StringFlag{
 				Name:     "gitlab-token",
 				Usage:    "GitLab personal access token",
