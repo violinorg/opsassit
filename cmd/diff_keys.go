@@ -20,12 +20,7 @@ func diffKeysCmd() *cli.Command {
 
 			file1Path := c.Args().Get(0)
 			file2Path := c.Args().Get(1)
-			gitlabURL := c.String("gitlab-url")
-			gitlabToken := c.String("gitlab-token")
-			projectID := c.Int("project-id")
-			baseBranch := c.String("base-branch")
-			newBranch := c.String("new-branch")
-			targetBranch := c.String("target-branch")
+			autoMR := c.Bool("auto-mr")
 
 			vars1, err := actions.LoadVariablesFromYAML(file1Path)
 			if err != nil {
@@ -48,68 +43,85 @@ func diffKeysCmd() *cli.Command {
 				os.Exit(1)
 			}
 
-			gitlabClient, err := actions.NewGitLabClient(gitlabURL, gitlabToken)
-			if err != nil {
-				fmt.Printf("Error creating GitLab client: %v\n", err)
-				os.Exit(1)
-			}
+			if autoMR {
+				gitlabURL := c.String("gitlab-url")
+				gitlabToken := c.String("gitlab-token")
+				projectID := c.Int("project-id")
+				baseBranch := c.String("base-branch")
+				newBranch := c.String("new-branch")
+				targetBranch := c.String("target-branch")
 
-			err = gitlabClient.CreateBranch(projectID, newBranch, baseBranch)
-			if err != nil {
-				fmt.Printf("Error creating branch: %v\n", err)
-				os.Exit(1)
-			}
+				gitlabClient, err := actions.NewGitLabClient(gitlabURL, gitlabToken)
+				if err != nil {
+					fmt.Printf("Error creating GitLab client: %v\n", err)
+					os.Exit(1)
+				}
 
-			content, err := os.ReadFile(resultFilePath)
-			if err != nil {
-				fmt.Printf("Error reading result file: %v\n", err)
-				os.Exit(1)
-			}
+				err = gitlabClient.CreateBranch(projectID, newBranch, baseBranch)
+				if err != nil {
+					fmt.Printf("Error creating branch: %v\n", err)
+					os.Exit(1)
+				}
 
-			err = gitlabClient.CreateFile(projectID, newBranch, resultFilePath, string(content))
-			if err != nil {
-				fmt.Printf("Error creating file: %v\n", err)
-				os.Exit(1)
-			}
+				content, err := os.ReadFile(resultFilePath)
+				if err != nil {
+					fmt.Printf("Error reading result file: %v\n", err)
+					os.Exit(1)
+				}
 
-			err = gitlabClient.CreateMergeRequest(projectID, newBranch, targetBranch, "WIP: Comparison Result")
-			if err != nil {
-				fmt.Printf("Error creating merge request: %v\n", err)
-				os.Exit(1)
+				err = gitlabClient.CreateFile(projectID, newBranch, resultFilePath, string(content))
+				if err != nil {
+					fmt.Printf("Error creating file: %v\n", err)
+					os.Exit(1)
+				}
+
+				err = gitlabClient.CreateMergeRequest(projectID, newBranch, targetBranch, "WIP: Comparison Result")
+				if err != nil {
+					fmt.Printf("Error creating merge request: %v\n", err)
+					os.Exit(1)
+				}
+			} else {
+				fmt.Println("Keys only in file1:")
+				for _, key := range onlyInFile1 {
+					fmt.Println(key)
+				}
+
+				fmt.Println("\nKeys only in file2:")
+				for _, key := range onlyInFile2 {
+					fmt.Println(key)
+				}
 			}
 
 			return nil
 		},
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:     "gitlab-url",
-				Usage:    "GitLab URL",
-				Required: true,
+				Name:  "gitlab-url",
+				Usage: "GitLab URL",
 			},
 			&cli.StringFlag{
-				Name:     "gitlab-token",
-				Usage:    "GitLab personal access token",
-				Required: true,
+				Name:  "gitlab-token",
+				Usage: "GitLab personal access token",
 			},
 			&cli.IntFlag{
-				Name:     "project-id",
-				Usage:    "GitLab project ID",
-				Required: true,
+				Name:  "project-id",
+				Usage: "GitLab project ID",
 			},
 			&cli.StringFlag{
-				Name:     "base-branch",
-				Usage:    "Base branch for the new branch",
-				Required: true,
+				Name:  "base-branch",
+				Usage: "Base branch for the new branch",
 			},
 			&cli.StringFlag{
-				Name:     "new-branch",
-				Usage:    "Name of the new branch",
-				Required: true,
+				Name:  "new-branch",
+				Usage: "Name of the new branch",
 			},
 			&cli.StringFlag{
-				Name:     "target-branch",
-				Usage:    "Target branch for the merge request",
-				Required: true,
+				Name:  "target-branch",
+				Usage: "Target branch for the merge request",
+			},
+			&cli.BoolFlag{
+				Name:  "auto-mr",
+				Usage: "Automatically create a merge request in GitLab",
 			},
 		},
 	}
