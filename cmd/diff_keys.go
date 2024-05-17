@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/urfave/cli/v2"
 	"github.com/violinorg/opsassit/actions"
-	"os"
 )
 
 func diffKeysCmd() *cli.Command {
@@ -19,6 +20,11 @@ func diffKeysCmd() *cli.Command {
 
 			file1Path := c.Args().Get(0)
 			file2Path := c.Args().Get(1)
+			gitlabToken := c.String("gitlab-token")
+			projectID := c.Int("project-id")
+			baseBranch := c.String("base-branch")
+			newBranch := c.String("new-branch")
+			targetBranch := c.String("target-branch")
 
 			vars1, err := actions.LoadVariablesFromYAML(file1Path)
 			if err != nil {
@@ -33,26 +39,68 @@ func diffKeysCmd() *cli.Command {
 			}
 
 			onlyInFile1, onlyInFile2 := actions.CompareKeys(vars1, vars2)
+			resultFilePath := "comparison_result.md"
 
-			if len(onlyInFile1) > 0 {
-				fmt.Println("Keys only in file1:")
-				for _, key := range onlyInFile1 {
-					fmt.Println(key)
-				}
-			} else {
-				fmt.Println("No keys unique to file1.")
+			err = actions.SaveComparisonResult(resultFilePath, onlyInFile1, onlyInFile2)
+			if err != nil {
+				fmt.Printf("Error saving comparison result: %v\n", err)
+				os.Exit(1)
 			}
 
-			if len(onlyInFile2) > 0 {
-				fmt.Println("Keys only in file2:")
-				for _, key := range onlyInFile2 {
-					fmt.Println(key)
-				}
-			} else {
-				fmt.Println("No keys unique to file2.")
+			gitlabClient := actions.NewGitLabClient(gitlabToken)
+
+			err = gitlabClient.CreateBranch(projectID, newBranch, baseBranch)
+			if err != nil {
+				fmt.Printf("Error creating branch: %v\n", err)
+				os.Exit(1)
+			}
+
+			content, err := os.ReadFile(resultFilePath)
+			if err != nil {
+				fmt.Printf("Error reading result file: %v\n", err)
+				os.Exit(1)
+			}
+
+			err = gitlabClient.CreateFile(projectID, newBranch, resultFilePath, string(content))
+			if err != nil {
+				fmt.Printf("Error creating file: %v\n", err)
+				os.Exit(1)
+			}
+
+			err = gitlabClient.CreateMergeRequest(projectID, newBranch, targetBranch, "Draft: Comparison Result")
+			if err != nil {
+				fmt.Printf("Error creating merge request: %v\n", err)
+				os.Exit(1)
 			}
 
 			return nil
+		},
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:     "gitlab-token",
+				Usage:    "GitLab personal access token",
+				Required: true,
+			},
+			&cli.IntFlag{
+				Name:     "project-id",
+				Usage:    "GitLab project ID",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:     "base-branch",
+				Usage:    "Base branch for the new branch",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:     "new-branch",
+				Usage:    "Name of the new branch",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:     "target-branch",
+				Usage:    "Target branch for the merge request",
+				Required: true,
+			},
 		},
 	}
 }
