@@ -1,10 +1,9 @@
 package main
 
 import (
-	"os"
-
 	log "github.com/sirupsen/logrus"
 	"github.com/violinorg/opsassit/cmd"
+	"os"
 )
 
 func main() {
