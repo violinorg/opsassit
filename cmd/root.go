@@ -9,6 +9,7 @@ import (
 var commands = []*cli.Command{
 	diffValuesCmd(),
 	diffKeysCmd(),
+	drainCmd(),
 }
 
 func CreateApp() *cli.App {

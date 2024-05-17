@@ -1,9 +1,9 @@
 package main
 
 import (
-	log "github.com/sirupsen/logrus"
 	"os"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/violinorg/opsassit/cmd"
 )
 
@@ -27,4 +27,4 @@ func recoverPanic() {
 			log.Panic(r)
 		}
 	}
-}
+}qq
