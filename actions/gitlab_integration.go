@@ -10,16 +10,18 @@ type GitLabClient struct {
 	client *gitlab.Client
 }
 
-func NewGitLabClient(token string) *GitLabClient {
-	return &GitLabClient{
-		client: gitlab.NewClient(nil, token),
+func NewGitLabClient(token string) (*GitLabClient, error) {
+	client, err := gitlab.NewClient(token)
+	if err != nil {
+		return nil, err
 	}
+	return &GitLabClient{client: client}, nil
 }
 
 func (g *GitLabClient) CreateBranch(projectID int, branchName, baseBranch string) error {
 	branch, _, err := g.client.Branches.CreateBranch(projectID, &gitlab.CreateBranchOptions{
-		Branch: &branchName,
-		Ref:    &baseBranch,
+		Branch: gitlab.String(branchName),
+		Ref:    gitlab.String(baseBranch),
 	})
 	if err != nil {
 		return err
@@ -30,15 +32,15 @@ func (g *GitLabClient) CreateBranch(projectID int, branchName, baseBranch string
 
 func (g *GitLabClient) CreateFile(projectID int, branchName, filePath, content string) error {
 	commitAction := gitlab.CommitActionOptions{
-		Action:   gitlab.FileCreate,
-		FilePath: filePath,
-		Content:  content,
+		Action:   gitlab.FileAction(gitlab.FileCreate),
+		FilePath: gitlab.String(filePath),
+		Content:  gitlab.String(content),
 	}
 
 	commitMessage := "Add comparison result file"
 	_, _, err := g.client.Commits.CreateCommit(projectID, &gitlab.CreateCommitOptions{
-		Branch:        &branchName,
-		CommitMessage: &commitMessage,
+		Branch:        gitlab.String(branchName),
+		CommitMessage: gitlab.String(commitMessage),
 		Actions:       []*gitlab.CommitActionOptions{&commitAction},
 	})
 	if err != nil {
@@ -50,10 +52,10 @@ func (g *GitLabClient) CreateFile(projectID int, branchName, filePath, content s
 
 func (g *GitLabClient) CreateMergeRequest(projectID int, sourceBranch, targetBranch, title string) error {
 	mr, _, err := g.client.MergeRequests.CreateMergeRequest(projectID, &gitlab.CreateMergeRequestOptions{
-		SourceBranch: &sourceBranch,
-		TargetBranch: &targetBranch,
-		Title:        &title,
-		Draft:        gitlab.Bool(true),
+		SourceBranch: gitlab.String(sourceBranch),
+		TargetBranch: gitlab.String(targetBranch),
+		Title:        gitlab.String(title),
+		// Draft field does not exist in go-gitlab package, use WIP prefix in title instead
 	})
 	if err != nil {
 		return err

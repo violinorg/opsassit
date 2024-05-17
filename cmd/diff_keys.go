@@ -47,7 +47,11 @@ func diffKeysCmd() *cli.Command {
 				os.Exit(1)
 			}
 
-			gitlabClient := actions.NewGitLabClient(gitlabToken)
+			gitlabClient, err := actions.NewGitLabClient(gitlabToken)
+			if err != nil {
+				fmt.Printf("Error creating GitLab client: %v\n", err)
+				os.Exit(1)
+			}
 
 			err = gitlabClient.CreateBranch(projectID, newBranch, baseBranch)
 			if err != nil {
@@ -67,7 +71,7 @@ func diffKeysCmd() *cli.Command {
 				os.Exit(1)
 			}
 
-			err = gitlabClient.CreateMergeRequest(projectID, newBranch, targetBranch, "Draft: Comparison Result")
+			err = gitlabClient.CreateMergeRequest(projectID, newBranch, targetBranch, "WIP: Comparison Result")
 			if err != nil {
 				fmt.Printf("Error creating merge request: %v\n", err)
 				os.Exit(1)
