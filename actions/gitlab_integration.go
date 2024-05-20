@@ -3,7 +3,6 @@ package actions
 import (
 	"fmt"
 	"github.com/xanzy/go-gitlab"
-	"io/ioutil"
 )
 
 type GitLabClient struct {
@@ -61,17 +60,4 @@ func (g *GitLabClient) CreateMergeRequest(projectID int, sourceBranch, targetBra
 	}
 	fmt.Printf("Created Merge Request: %s\n", mr.Title)
 	return nil
-}
-
-func SaveComparisonResult(filePath string, keysOnlyInFile1, keysOnlyInFile2 []string) error {
-	content := "Keys only in file1:\n"
-	for _, key := range keysOnlyInFile1 {
-		content += fmt.Sprintf("- %s\n", key)
-	}
-	content += "\nKeys only in file2:\n"
-	for _, key := range keysOnlyInFile2 {
-		content += fmt.Sprintf("- %s\n", key)
-	}
-
-	return ioutil.WriteFile(filePath, []byte(content), 0644)
 }
