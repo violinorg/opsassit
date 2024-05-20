@@ -27,6 +27,8 @@ func drainCmd() *cli.Command {
 				file2Path = c.Args().Get(1)
 			}
 
+			autoMR := c.Bool("auto-mr")
+
 			vars1, order1, err := actions.LoadVariablesFromYAMLWithOrder(file1Path)
 			if err != nil {
 				fmt.Printf("Error loading file1: %v\n", err)
@@ -52,8 +54,25 @@ func drainCmd() *cli.Command {
 			}
 
 			fmt.Println("Successfully drained keys from file2 to file1.")
+
+			if autoMR {
+				gitlabURL := c.String("gitlab-url")
+				gitlabToken := c.String("gitlab-token")
+				projectID := c.String("project-id")
+				baseBranch := c.String("base-branch")
+				newBranch := c.String("new-branch")
+				targetBranch := c.String("target-branch")
+
+				err = actions.HandleGitLabMergeRequest(gitlabURL, gitlabToken, file1Path, baseBranch, newBranch, targetBranch, projectID)
+				if err != nil {
+					fmt.Printf("Error handling GitLab merge request: %v\n", err)
+					os.Exit(1)
+				}
+			}
+
 			return nil
 		},
+		Flags: addGitLabFlags(nil),
 	}
 }
 

@@ -46,38 +46,14 @@ func diffKeysCmd() *cli.Command {
 			if autoMR {
 				gitlabURL := c.String("gitlab-url")
 				gitlabToken := c.String("gitlab-token")
-				projectID := c.Int("project-id")
+				projectID := c.String("project-id")
 				baseBranch := c.String("base-branch")
 				newBranch := c.String("new-branch")
 				targetBranch := c.String("target-branch")
 
-				gitlabClient, err := actions.NewGitLabClient(gitlabURL, gitlabToken)
+				err = actions.HandleGitLabMergeRequest(gitlabURL, gitlabToken, resultFilePath, baseBranch, newBranch, targetBranch, projectID)
 				if err != nil {
-					fmt.Printf("Error creating GitLab client: %v\n", err)
-					os.Exit(1)
-				}
-
-				err = gitlabClient.CreateBranch(projectID, newBranch, baseBranch)
-				if err != nil {
-					fmt.Printf("Error creating branch: %v\n", err)
-					os.Exit(1)
-				}
-
-				content, err := os.ReadFile(resultFilePath)
-				if err != nil {
-					fmt.Printf("Error reading result file: %v\n", err)
-					os.Exit(1)
-				}
-
-				err = gitlabClient.CreateFile(projectID, newBranch, resultFilePath, string(content))
-				if err != nil {
-					fmt.Printf("Error creating file: %v\n", err)
-					os.Exit(1)
-				}
-
-				err = gitlabClient.CreateMergeRequest(projectID, newBranch, targetBranch, "WIP: Comparison Result")
-				if err != nil {
-					fmt.Printf("Error creating merge request: %v\n", err)
+					fmt.Printf("Error handling GitLab merge request: %v\n", err)
 					os.Exit(1)
 				}
 			} else {
@@ -94,35 +70,6 @@ func diffKeysCmd() *cli.Command {
 
 			return nil
 		},
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:  "gitlab-url",
-				Usage: "GitLab URL",
-			},
-			&cli.StringFlag{
-				Name:  "gitlab-token",
-				Usage: "GitLab personal access token",
-			},
-			&cli.IntFlag{
-				Name:  "project-id",
-				Usage: "GitLab project ID",
-			},
-			&cli.StringFlag{
-				Name:  "base-branch",
-				Usage: "Base branch for the new branch",
-			},
-			&cli.StringFlag{
-				Name:  "new-branch",
-				Usage: "Name of the new branch",
-			},
-			&cli.StringFlag{
-				Name:  "target-branch",
-				Usage: "Target branch for the merge request",
-			},
-			&cli.BoolFlag{
-				Name:  "auto-mr",
-				Usage: "Automatically create a merge request in GitLab",
-			},
-		},
+		Flags: addGitLabFlags(nil),
 	}
 }
