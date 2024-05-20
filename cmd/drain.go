@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"reflect"
+	"strings"
 
 	"github.com/urfave/cli/v2"
 	"github.com/violinorg/opsassit/actions"
-	"gopkg.in/yaml.v2"
 )
 
 func drainCmd() *cli.Command {
@@ -35,14 +36,13 @@ func drainCmd() *cli.Command {
 				os.Exit(1)
 			}
 
-			updatedVars := drainYAML(vars1, vars2)
-			updatedYAML, err := yaml.Marshal(updatedVars)
+			updatedYAML, err := generateUpdatedYAML(vars1, vars2)
 			if err != nil {
-				fmt.Printf("Error marshalling updated YAML: %v\n", err)
+				fmt.Printf("Error generating updated YAML: %v\n", err)
 				os.Exit(1)
 			}
 
-			err = ioutil.WriteFile(file1Path, updatedYAML, 0644)
+			err = ioutil.WriteFile(file1Path, []byte(updatedYAML), 0644)
 			if err != nil {
 				fmt.Printf("Error writing updated YAML to file1: %v\n", err)
 				os.Exit(1)
@@ -54,15 +54,21 @@ func drainCmd() *cli.Command {
 	}
 }
 
-func drainYAML(vars1, vars2 map[string]interface{}) map[string]interface{} {
+func generateUpdatedYAML(vars1, vars2 map[string]interface{}) (string, error) {
+	var builder strings.Builder
+
+	for key, val1 := range vars1 {
+		if val2, exists := vars2[key]; exists && !reflect.DeepEqual(val1, val2) {
+			builder.WriteString(fmt.Sprintf("# from file2 - %s: %v\n", key, val2))
+		}
+		builder.WriteString(fmt.Sprintf("%s: %v\n", key, val1))
+	}
+
 	for key, val2 := range vars2 {
-		if val1, exists := vars1[key]; exists {
-			if val1 != val2 {
-				vars1[key] = fmt.Sprintf("%v\" # from file2 = %v", val1, val2)
-			}
-		} else {
-			vars1[key] = val2
+		if _, exists := vars1[key]; !exists {
+			builder.WriteString(fmt.Sprintf("%s: %v\n", key, val2))
 		}
 	}
-	return vars1
+
+	return builder.String(), nil
 }
