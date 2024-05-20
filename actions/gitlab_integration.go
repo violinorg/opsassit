@@ -3,6 +3,7 @@ package actions
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/xanzy/go-gitlab"
 )
@@ -70,7 +71,12 @@ func HandleGitLabMergeRequest(gitlabURL, gitlabToken, resultFilePath, baseBranch
 		return fmt.Errorf("Error creating GitLab client: %v", err)
 	}
 
-	if err = gitlabClient.CreateBranch(projectID, newBranch, baseBranch); err != nil {
+	projectIDInt, err := strconv.Atoi(projectID)
+	if err != nil {
+		return fmt.Errorf("Error converting projectID to int: %v", err)
+	}
+
+	if err = gitlabClient.CreateBranch(projectIDInt, newBranch, baseBranch); err != nil {
 		return fmt.Errorf("Error creating branch: %v", err)
 	}
 
@@ -79,11 +85,11 @@ func HandleGitLabMergeRequest(gitlabURL, gitlabToken, resultFilePath, baseBranch
 		return fmt.Errorf("Error reading result file: %v", err)
 	}
 
-	if err = gitlabClient.CreateFile(projectID, newBranch, resultFilePath, string(content)); err != nil {
+	if err = gitlabClient.CreateFile(projectIDInt, newBranch, resultFilePath, string(content)); err != nil {
 		return fmt.Errorf("Error creating file: %v", err)
 	}
 
-	if err = gitlabClient.CreateMergeRequest(projectID, newBranch, targetBranch, "WIP: Comparison Result"); err != nil {
+	if err = gitlabClient.CreateMergeRequest(projectIDInt, newBranch, targetBranch, "WIP: Comparison Result"); err != nil {
 		return fmt.Errorf("Error creating merge request: %v", err)
 	}
 
