@@ -2,8 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-
+	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 	"github.com/violinorg/opsassit/actions"
 )
@@ -24,14 +23,12 @@ func diffKeysCmd() *cli.Command {
 
 			vars1, err := actions.LoadVariablesFromYAML(file1Path)
 			if err != nil {
-				fmt.Printf("Error loading file1: %v\n", err)
-				os.Exit(1)
+				return fmt.Errorf("error loading file1: %v", err)
 			}
 
 			vars2, err := actions.LoadVariablesFromYAML(file2Path)
 			if err != nil {
-				fmt.Printf("Error loading file2: %v\n", err)
-				os.Exit(1)
+				return fmt.Errorf("error loading file2: %v", err)
 			}
 
 			onlyInFile1, onlyInFile2 := actions.CompareKeys(vars1, vars2)
@@ -39,8 +36,7 @@ func diffKeysCmd() *cli.Command {
 
 			err = actions.SaveComparisonResult(resultFilePath, onlyInFile1, onlyInFile2)
 			if err != nil {
-				fmt.Printf("Error saving comparison result: %v\n", err)
-				os.Exit(1)
+				return fmt.Errorf("error saving comparison result: %v", err)
 			}
 
 			if autoMR {
@@ -53,8 +49,7 @@ func diffKeysCmd() *cli.Command {
 
 				err = actions.HandleGitLabMergeRequest(gitlabURL, gitlabToken, resultFilePath, baseBranch, newBranch, targetBranch, projectID)
 				if err != nil {
-					fmt.Printf("Error handling GitLab merge request: %v\n", err)
-					os.Exit(1)
+					return fmt.Errorf("error handling GitLab merge request: %v", err)
 				}
 			} else {
 				fmt.Println("Keys only in file1:")
@@ -67,6 +62,8 @@ func diffKeysCmd() *cli.Command {
 					fmt.Println(key)
 				}
 			}
+
+			color.Green("Comparison completed successfully.")
 
 			return nil
 		},
