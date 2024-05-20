@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"strings"
@@ -17,12 +16,16 @@ func drainCmd() *cli.Command {
 		Usage:     "Drain missing keys from the second YAML file into the first YAML file",
 		ArgsUsage: "[file1] [file2]",
 		Action: func(c *cli.Context) error {
-			if c.NArg() != 2 {
-				return fmt.Errorf("expected exactly 2 arguments")
-			}
+			file1Path := os.Getenv("OA_DRAIN_FILE1")
+			file2Path := os.Getenv("OA_DRAIN_FILE2")
 
-			file1Path := c.Args().Get(0)
-			file2Path := c.Args().Get(1)
+			if file1Path == "" || file2Path == "" {
+				if c.NArg() != 2 {
+					return fmt.Errorf("expected exactly 2 arguments")
+				}
+				file1Path = c.Args().Get(0)
+				file2Path = c.Args().Get(1)
+			}
 
 			vars1, order1, err := actions.LoadVariablesFromYAMLWithOrder(file1Path)
 			if err != nil {
@@ -42,7 +45,7 @@ func drainCmd() *cli.Command {
 				os.Exit(1)
 			}
 
-			err = ioutil.WriteFile(file1Path, []byte(updatedYAML), 0644)
+			err = os.WriteFile(file1Path, []byte(updatedYAML), 0644)
 			if err != nil {
 				fmt.Printf("Error writing updated YAML to file1: %v\n", err)
 				os.Exit(1)

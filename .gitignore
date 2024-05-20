@@ -6,6 +6,8 @@ dist/
 
 # Package build directory
 builds/
+# Development
+dev.local
 
 ### Linux template
 *~
