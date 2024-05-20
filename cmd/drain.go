@@ -24,19 +24,19 @@ func drainCmd() *cli.Command {
 			file1Path := c.Args().Get(0)
 			file2Path := c.Args().Get(1)
 
-			vars1, err := actions.LoadVariablesFromYAML(file1Path)
+			vars1, order1, err := actions.LoadVariablesFromYAMLWithOrder(file1Path)
 			if err != nil {
 				fmt.Printf("Error loading file1: %v\n", err)
 				os.Exit(1)
 			}
 
-			vars2, err := actions.LoadVariablesFromYAML(file2Path)
+			vars2, _, err := actions.LoadVariablesFromYAMLWithOrder(file2Path)
 			if err != nil {
 				fmt.Printf("Error loading file2: %v\n", err)
 				os.Exit(1)
 			}
 
-			updatedYAML, err := generateUpdatedYAML(vars1, vars2)
+			updatedYAML, err := generateUpdatedYAML(vars1, vars2, order1)
 			if err != nil {
 				fmt.Printf("Error generating updated YAML: %v\n", err)
 				os.Exit(1)
@@ -54,16 +54,20 @@ func drainCmd() *cli.Command {
 	}
 }
 
-func generateUpdatedYAML(vars1, vars2 map[string]interface{}) (string, error) {
+func generateUpdatedYAML(vars1, vars2 map[string]interface{}, order1 []string) (string, error) {
 	var builder strings.Builder
+	builder.WriteString("---\n")
 
-	for key, val1 := range vars1 {
+	// Preserve the order of keys from file1
+	for _, key := range order1 {
+		val1 := vars1[key]
 		if val2, exists := vars2[key]; exists && !reflect.DeepEqual(val1, val2) {
 			builder.WriteString(fmt.Sprintf("# from file2 - %s: %v\n", key, val2))
 		}
 		builder.WriteString(fmt.Sprintf("%s: %v\n", key, val1))
 	}
 
+	// Add keys from file2 that do not exist in file1
 	for key, val2 := range vars2 {
 		if _, exists := vars1[key]; !exists {
 			builder.WriteString(fmt.Sprintf("%s: %v\n", key, val2))

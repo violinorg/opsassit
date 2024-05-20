@@ -1,4 +1,6 @@
 ---
-var1: 10
-var2: 20
 var3: 30
+var1: 10
+# from file2 - var2: 25
+var2: 20
+var4: 40
