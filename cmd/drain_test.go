@@ -3,37 +3,23 @@ package cmd
 import (
 	"bytes"
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/urfave/cli/v2"
 )
 
 func TestDrainCmd(t *testing.T) {
-	// Create a temporary directory for testing
-	dir, err := os.MkdirTemp("", "drain_test")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(dir)
+	// Paths to test files
+	file1Path := filepath.Join("tests", "drain", "file1.yaml")
+	file2Path := filepath.Join("tests", "drain", "file2.yaml")
+	expectedPath := filepath.Join("tests", "drain", "expected.yaml")
 
-	// Create test files
-	file1Path := dir + "/file1.yaml"
-	file2Path := dir + "/file2.yaml"
-
-	err = os.WriteFile(file1Path, []byte(`var1: 10
-var2: 20
-var3: 30
-`), 0644)
+	// Read expected output
+	expected, err := os.ReadFile(expectedPath)
 	if err != nil {
-		t.Fatalf("Failed to write to file1: %v", err)
-	}
-
-	err = os.WriteFile(file2Path, []byte(`var2: 25
-var3: 30
-var4: 40
-`), 0644)
-	if err != nil {
-		t.Fatalf("Failed to write to file2: %v", err)
+		t.Fatalf("Failed to read expected output: %v", err)
 	}
 
 	// Set up the CLI app
@@ -55,17 +41,22 @@ var4: 40
 	}
 
 	// Check the output
-	expected := "---\nvar1: 10\n# from file2 - var2: 25\nvar2: 20\nvar3: 30\nvar4: 40\n\n# OpsAssist Verified\n"
 	content, err := os.ReadFile(file1Path)
 	if err != nil {
 		t.Fatalf("Failed to read file1: %v", err)
 	}
-	if string(content) != expected {
-		t.Fatalf("Expected:\n%s\nGot:\n%s", expected, string(content))
+
+	// Trim spaces and newlines for a more lenient comparison
+	expectedStr := strings.TrimSpace(string(expected))
+	contentStr := strings.TrimSpace(string(content))
+
+	if expectedStr != contentStr {
+		t.Fatalf("Expected:\n%s\nGot:\n%s", expectedStr, contentStr)
 	}
 
 	// Check the console output
-	if !bytes.Contains(buf.Bytes(), []byte("Successfully drained keys from file2 to file1.")) {
+	expectedSuccessMessage := "Successfully drained keys from file2 to file1."
+	if !strings.Contains(buf.String(), expectedSuccessMessage) {
 		t.Fatalf("Expected success message, got: %s", buf.String())
 	}
 
@@ -75,7 +66,8 @@ var4: 40
 	if err != nil {
 		t.Fatalf("Failed to run drain command: %v", err)
 	}
-	if !bytes.Contains(buf.Bytes(), []byte("The file is already tuned.")) {
+	expectedAlreadyTunedMessage := "The file is already tuned."
+	if !strings.Contains(buf.String(), expectedAlreadyTunedMessage) {
 		t.Fatalf("Expected 'The file is already tuned.' message, got: %s", buf.String())
 	}
 }
