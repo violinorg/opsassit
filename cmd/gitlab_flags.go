@@ -47,7 +47,7 @@ func addGitLabFlags(flags []cli.Flag) []cli.Flag {
 		&cli.StringFlag{
 			Name:    "target-branch",
 			Usage:   "Target branch for the merge request",
-			Value:   getEnvOrDefault("OA_GITLAB_TARGET_BRANCH", "$OA_GITLAB_BASE_BRANCH"),
+			Value:   getEnvOrDefault("OA_GITLAB_TARGET_BRANCH", ""),
 			EnvVars: []string{"OA_GITLAB_TARGET_BRANCH"},
 		},
 		&cli.BoolFlag{

@@ -66,31 +66,35 @@ func (g *GitLabClient) CreateMergeRequest(projectID int, sourceBranch, targetBra
 }
 
 func HandleGitLabMergeRequest(gitlabURL, gitlabToken, resultFilePath, baseBranch, newBranch, targetBranch, projectID string) error {
+	if gitlabURL == "" || gitlabToken == "" {
+		return fmt.Errorf("GitLab URL and Token must be provided")
+	}
+
 	gitlabClient, err := NewGitLabClient(gitlabURL, gitlabToken)
 	if err != nil {
-		return fmt.Errorf("Error creating GitLab client: %v", err)
+		return fmt.Errorf("error creating GitLab client: %v", err)
 	}
 
 	projectIDInt, err := strconv.Atoi(projectID)
 	if err != nil {
-		return fmt.Errorf("Error converting projectID to int: %v", err)
+		return fmt.Errorf("error converting projectID to int: %v", err)
 	}
 
 	if err = gitlabClient.CreateBranch(projectIDInt, newBranch, baseBranch); err != nil {
-		return fmt.Errorf("Error creating branch: %v", err)
+		return fmt.Errorf("error creating branch: %v", err)
 	}
 
 	content, err := os.ReadFile(resultFilePath)
 	if err != nil {
-		return fmt.Errorf("Error reading result file: %v", err)
+		return fmt.Errorf("error reading result file: %v", err)
 	}
 
 	if err = gitlabClient.CreateFile(projectIDInt, newBranch, resultFilePath, string(content)); err != nil {
-		return fmt.Errorf("Error creating file: %v", err)
+		return fmt.Errorf("error creating file: %v", err)
 	}
 
 	if err = gitlabClient.CreateMergeRequest(projectIDInt, newBranch, targetBranch, "WIP: Comparison Result"); err != nil {
-		return fmt.Errorf("Error creating merge request: %v", err)
+		return fmt.Errorf("error creating merge request: %v", err)
 	}
 
 	return nil
