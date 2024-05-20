@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"reflect"
 
 	"github.com/urfave/cli/v2"
 	"github.com/violinorg/opsassit/actions"
@@ -58,15 +57,8 @@ func drainCmd() *cli.Command {
 func drainYAML(vars1, vars2 map[string]interface{}) map[string]interface{} {
 	for key, val2 := range vars2 {
 		if val1, exists := vars1[key]; exists {
-			if !reflect.DeepEqual(val1, val2) {
-				switch val1Typed := val1.(type) {
-				case int, int64, float64:
-					vars1[key] = fmt.Sprintf("%v  # from file2 = %v", val1Typed, val2)
-				case string:
-					vars1[key] = fmt.Sprintf("%s  # from file2 = %v", val1Typed, val2)
-				default:
-					vars1[key] = val1Typed
-				}
+			if val1 != val2 {
+				vars1[key] = fmt.Sprintf("%v"+" # from file2 = %v", val1, val2)
 			}
 		} else {
 			vars1[key] = val2
