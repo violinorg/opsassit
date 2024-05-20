@@ -58,7 +58,7 @@ func drainYAML(vars1, vars2 map[string]interface{}) map[string]interface{} {
 	for key, val2 := range vars2 {
 		if val1, exists := vars1[key]; exists {
 			if val1 != val2 {
-				vars1[key] = fmt.Sprintf("%v"+" # from file2 = %v", val1, val2)
+				vars1[key] = fmt.Sprintf("%v\" # from file2 = %v", val1, val2)
 			}
 		} else {
 			vars1[key] = val2
