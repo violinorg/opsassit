@@ -40,7 +40,7 @@ func TestDiffKeysCmd(t *testing.T) {
 	expectedStr := strings.TrimSpace(string(expectedOutput))
 	actualStr := strings.TrimSpace(buf.String())
 
-	if !strings.Contains(actualStr, expectedStr) {
+	if expectedStr != actualStr {
 		t.Fatalf("Expected:\n%s\nGot:\n%s", expectedStr, actualStr)
 	}
 }
