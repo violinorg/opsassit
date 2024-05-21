@@ -1,8 +1,10 @@
 package actions
 
 import (
+	"github.com/google/go-cmp/cmp"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"os"
 )
 
 func LoadVariablesFromYAML(filePath string) (map[string]interface{}, error) {
@@ -38,6 +40,16 @@ func CompareKeys(vars1, vars2 map[string]interface{}) ([]string, []string) {
 	return onlyInFile1, onlyInFile2
 }
 
+func CompareValues(vars1, vars2 map[string]interface{}) map[string][2]interface{} {
+	differences := make(map[string][2]interface{})
+	for key, val1 := range vars1 {
+		if val2, exists := vars2[key]; exists && !cmp.Equal(val1, val2) {
+			differences[key] = [2]interface{}{val1, val2}
+		}
+	}
+	return differences
+}
+
 func SaveComparisonResult(resultFilePath string, onlyInFile1, onlyInFile2 []string) error {
 	result := struct {
 		OnlyInFile1 []string `yaml:"only_in_file1"`
@@ -53,4 +65,19 @@ func SaveComparisonResult(resultFilePath string, onlyInFile1, onlyInFile2 []stri
 	}
 
 	return ioutil.WriteFile(resultFilePath, data, 0644)
+}
+
+func saveValuesComparisonResult(resultFilePath string, differences map[string][2]interface{}) error {
+	result := struct {
+		Differences map[string][2]interface{} `yaml:"differences"`
+	}{
+		Differences: differences,
+	}
+
+	data, err := yaml.Marshal(result)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(resultFilePath, data, 0644)
 }

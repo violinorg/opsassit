@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/urfave/cli/v2"
 	"github.com/violinorg/opsassit/actions"
-	"os"
 )
 
 func diffValuesCmd() *cli.Command {
@@ -19,31 +18,49 @@ func diffValuesCmd() *cli.Command {
 
 			file1Path := c.Args().Get(0)
 			file2Path := c.Args().Get(1)
+			autoMR := c.Bool("auto-mr")
 
 			vars1, err := actions.LoadVariablesFromYAML(file1Path)
 			if err != nil {
-				fmt.Printf("Error loading file1: %v\n", err)
-				os.Exit(1)
+				return fmt.Errorf("error loading file1: %v", err)
 			}
 
 			vars2, err := actions.LoadVariablesFromYAML(file2Path)
 			if err != nil {
-				fmt.Printf("Error loading file2: %v\n", err)
-				os.Exit(1)
+				return fmt.Errorf("error loading file2: %v", err)
 			}
 
 			differences := actions.CompareValues(vars1, vars2)
+			resultFilePath := "comparison_values_result.md"
 
-			if len(differences) > 0 {
-				fmt.Println("Differences found:")
-				for key, vals := range differences {
-					fmt.Printf("Variable %s: %v (file1) != %v (file2)\n", key, vals[0], vals[1])
+			err = actions.saveValuesComparisonResult(resultFilePath, differences)
+			if err != nil {
+				return fmt.Errorf("error saving comparison result: %v", err)
+			}
+
+			if autoMR {
+				gitlabURL := c.String("gitlab-url")
+				gitlabToken := c.String("gitlab-token")
+				projectID := c.String("project-id")
+				baseBranch := c.String("base-branch")
+				newBranch := c.String("new-branch")
+				targetBranch := c.String("target-branch")
+
+				err = actions.HandleGitLabMergeRequest(gitlabURL, gitlabToken, resultFilePath, baseBranch, newBranch, targetBranch, projectID)
+				if err != nil {
+					return fmt.Errorf("error handling GitLab merge request: %v", err)
 				}
 			} else {
-				fmt.Println("No differences found.")
+				fmt.Println("Differences in values:")
+				for key, vals := range differences {
+					fmt.Printf("%s: %v -> %v\n", key, vals[0], vals[1])
+				}
 			}
+
+			fmt.Println("Comparison completed successfully.")
 
 			return nil
 		},
+		Flags: addGitLabFlags(nil),
 	}
 }

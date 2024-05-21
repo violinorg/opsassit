@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 	"github.com/violinorg/opsassit/actions"
 )
@@ -63,7 +62,7 @@ func diffKeysCmd() *cli.Command {
 				}
 			}
 
-			color.Green("Comparison completed successfully.")
+			fmt.Println("Comparison completed successfully.")
 
 			return nil
 		},
