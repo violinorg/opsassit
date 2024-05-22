@@ -11,7 +11,6 @@ func CreateApp() *cli.App {
 	app.Usage = "A CLI tool for YAML file operations"
 	app.Commands = []*cli.Command{
 		drainCmd(),
-		diffKeysCmd(),
 		diffValuesCmd(),
 	}
 	return app

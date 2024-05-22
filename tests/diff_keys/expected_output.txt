@@ -1,6 +1,0 @@
-Keys only in file1:
-var1
-
-Keys only in file2:
-var4
-Comparison completed successfully.
