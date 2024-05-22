@@ -16,6 +16,7 @@ func TestDrainCmd(t *testing.T) {
 	file2Path := filepath.Join("../tests", "drain", "file2.yaml")
 	expectedPath := filepath.Join("../tests", "drain", "expected.yaml")
 	expectedPreviewPath := filepath.Join("../tests", "drain", "expected_preview.txt")
+	outputPath := filepath.Join("../tests", "drain", "output.yaml")
 
 	// Read expected outputs
 	expected, err := os.ReadFile(expectedPath)
@@ -37,6 +38,7 @@ func TestDrainCmd(t *testing.T) {
 	// Set up the environment variables
 	os.Setenv("FILE1_PATH", file1Path)
 	os.Setenv("FILE2_PATH", file2Path)
+	os.Setenv("OA_DRAIN_OUTPUT", outputPath)
 
 	// Run the CLI app with the drain command without --approved
 	var buf bytes.Buffer
@@ -62,9 +64,9 @@ func TestDrainCmd(t *testing.T) {
 	}
 
 	// Check the output file
-	content, err := os.ReadFile(file1Path)
+	content, err := os.ReadFile(outputPath)
 	if err != nil {
-		t.Fatalf("Failed to read file1: %v", err)
+		t.Fatalf("Failed to read output file: %v", err)
 	}
 
 	expectedStr := strings.TrimSpace(string(expected))
@@ -75,7 +77,7 @@ func TestDrainCmd(t *testing.T) {
 	}
 
 	// Check the console output
-	expectedSuccessMessage := "Successfully drained keys from file2 to file1."
+	expectedSuccessMessage := "Successfully drained keys from file2 to output file."
 	if !strings.Contains(buf.String(), expectedSuccessMessage) {
 		t.Fatalf("Expected success message, got: %s", buf.String())
 	}

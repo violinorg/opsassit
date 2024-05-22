@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 	"github.com/violinorg/opsassit/actions"
-	"os"
-	"strings"
 )
 
 func drainCmd() *cli.Command {
@@ -17,6 +18,7 @@ func drainCmd() *cli.Command {
 		Action: func(c *cli.Context) error {
 			file1Path := os.Getenv("FILE1_PATH")
 			file2Path := os.Getenv("FILE2_PATH")
+			outputPath := os.Getenv("OA_DRAIN_OUTPUT")
 
 			if file1Path == "" || file2Path == "" {
 				if c.NArg() != 2 {
@@ -24,6 +26,10 @@ func drainCmd() *cli.Command {
 				}
 				file1Path = c.Args().Get(0)
 				file2Path = c.Args().Get(1)
+			}
+
+			if outputPath == "" {
+				outputPath = c.String("output")
 			}
 
 			approved := c.Bool("approved")
@@ -55,7 +61,7 @@ func drainCmd() *cli.Command {
 			}
 
 			// Output the changes
-			fmt.Println("Announcing changes:")
+			fmt.Println("Proposed changes:")
 			for _, key := range vars1.Keys {
 				val1 := vars1.Values[key]
 				if val2, exists := vars2.Values[key]; exists && !actions.ValuesEqual(val1, val2) {
@@ -67,19 +73,19 @@ func drainCmd() *cli.Command {
 			}
 			for _, key := range vars2.Keys {
 				if _, exists := vars1.Values[key]; !exists {
-					color.New(color.FgGreen).Printf("%s: %v\n", key, vars2.Values[key])
+					color.New(color.FgGreen).Printf("# Added from file2\n%s: %v\n", key, vars2.Values[key])
 				}
 			}
 
 			if approved {
 				updatedYAML += "\n# OpsAssist Verified\n"
 
-				err = os.WriteFile(file1Path, []byte(updatedYAML), 0644)
+				err = os.WriteFile(outputPath, []byte(updatedYAML), 0644)
 				if err != nil {
-					return fmt.Errorf("error writing updated YAML to file1: %v", err)
+					return fmt.Errorf("error writing updated YAML to output file: %v", err)
 				}
 
-				fmt.Println("Successfully drained keys from file2 to file1.")
+				fmt.Println("Successfully drained keys from file2 to output file.")
 			} else {
 				fmt.Println("Run the command with --approved to apply these changes.")
 			}
@@ -90,6 +96,10 @@ func drainCmd() *cli.Command {
 			&cli.BoolFlag{
 				Name:  "approved",
 				Usage: "Apply the changes to the file",
+			},
+			&cli.StringFlag{
+				Name:  "output",
+				Usage: "Output file path",
 			},
 		},
 	}
