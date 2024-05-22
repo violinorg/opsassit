@@ -2,24 +2,19 @@ package cmd
 
 import (
 	"fmt"
-
 	"github.com/urfave/cli/v2"
 )
 
-var commands = []*cli.Command{
-	diffValuesCmd(),
-	diffKeysCmd(),
-	drainCmd(),
-}
-
 func CreateApp() *cli.App {
-	c := cli.NewApp()
-	c.EnableBashCompletion = true
-	c.Usage = "Compare YAML files"
-	c.Commands = commands
-	c.CommandNotFound = command404
-
-	return c
+	app := cli.NewApp()
+	app.Name = "OpsAssist"
+	app.Usage = "A CLI tool for YAML file operations"
+	app.Commands = []*cli.Command{
+		drainCmd(),
+		diffKeysCmd(),
+		diffValuesCmd(),
+	}
+	return app
 }
 
 // CommandNotFoundError is returned when CLI command is not found.
@@ -37,3 +32,28 @@ func command404(c *cli.Context, s string) {
 	}
 	panic(err)
 }
+
+//package cmd
+//
+//import (
+//	"fmt"
+//
+//	"github.com/urfave/cli/v2"
+//)
+//
+//var commands = []*cli.Command{
+//	diffValuesCmd(),
+//	diffKeysCmd(),
+//	drainCmd(),
+//}
+//
+//func CreateApp() *cli.App {
+//	c := cli.NewApp()
+//	c.EnableBashCompletion = true
+//	c.Usage = "Compare YAML files"
+//	c.Commands = commands
+//	c.CommandNotFound = command404
+//
+//	return c
+//}
+//

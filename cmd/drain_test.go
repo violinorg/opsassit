@@ -12,9 +12,9 @@ import (
 
 func TestDrainCmd(t *testing.T) {
 	// Paths to test files
-	file1Path := filepath.Join("tests", "drain", "file1.yaml")
-	file2Path := filepath.Join("tests", "drain", "file2.yaml")
-	expectedPath := filepath.Join("tests", "drain", "expected.yaml")
+	file1Path := filepath.Join("../tests", "drain", "file1.yaml")
+	file2Path := filepath.Join("../tests", "drain", "file2.yaml")
+	expectedPath := filepath.Join("../tests", "drain", "expected.yaml")
 
 	// Read expected output
 	expected, err := os.ReadFile(expectedPath)

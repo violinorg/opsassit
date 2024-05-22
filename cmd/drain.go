@@ -38,17 +38,17 @@ func drainCmd() *cli.Command {
 				return nil
 			}
 
-			vars1, order1, err := actions.LoadVariablesFromYAMLWithOrder(file1Path)
+			vars1, err := actions.LoadVariablesFromYAMLWithOrder(file1Path)
 			if err != nil {
 				return fmt.Errorf("error loading file1: %v", err)
 			}
 
-			vars2, _, err := actions.LoadVariablesFromYAMLWithOrder(file2Path)
+			vars2, err := actions.LoadVariablesFromYAMLWithOrder(file2Path)
 			if err != nil {
 				return fmt.Errorf("error loading file2: %v", err)
 			}
 
-			updatedYAML, err := actions.GenerateUpdatedYAML(vars1, vars2, order1)
+			updatedYAML, err := actions.GenerateUpdatedYAML(vars1, vars2)
 			if err != nil {
 				return fmt.Errorf("error generating updated YAML: %v", err)
 			}

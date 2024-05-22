@@ -1,13 +1,20 @@
 package actions
 
 import (
+	"fmt"
 	"github.com/google/go-cmp/cmp"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	"os"
+	"sort"
+	"strings"
 )
 
-func LoadVariablesFromYAML(filePath string) (map[string]interface{}, error) {
+type OrderedMap struct {
+	Keys   []string
+	Values map[string]interface{}
+}
+
+func LoadVariablesFromYAMLWithOrder(filePath string) (*OrderedMap, error) {
 	content, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return nil, err
@@ -19,20 +26,55 @@ func LoadVariablesFromYAML(filePath string) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	return data, nil
+	orderedMap := &OrderedMap{
+		Keys:   make([]string, 0, len(data)),
+		Values: make(map[string]interface{}),
+	}
+
+	for key, value := range data {
+		orderedMap.Keys = append(orderedMap.Keys, key)
+		orderedMap.Values[key] = value
+	}
+
+	sort.Strings(orderedMap.Keys)
+
+	return orderedMap, nil
 }
 
-func CompareKeys(vars1, vars2 map[string]interface{}) ([]string, []string) {
+func GenerateUpdatedYAML(vars1, vars2 *OrderedMap) (string, error) {
+	var builder strings.Builder
+	builder.WriteString("---\n")
+
+	// Preserve the order of keys from vars1
+	for _, key := range vars1.Keys {
+		val1 := vars1.Values[key]
+		if val2, exists := vars2.Values[key]; exists && !cmp.Equal(val1, val2) {
+			builder.WriteString(fmt.Sprintf("# from file2 - %s: %v\n", key, val2))
+		}
+		builder.WriteString(fmt.Sprintf("%s: %v\n", key, val1))
+	}
+
+	// Add keys from vars2 that do not exist in vars1, preserving the order from vars2
+	for _, key := range vars2.Keys {
+		if _, exists := vars1.Values[key]; !exists {
+			builder.WriteString(fmt.Sprintf("%s: %v\n", key, vars2.Values[key]))
+		}
+	}
+
+	return builder.String(), nil
+}
+
+func CompareKeys(vars1, vars2 *OrderedMap) ([]string, []string) {
 	var onlyInFile1, onlyInFile2 []string
 
-	for key := range vars1 {
-		if _, exists := vars2[key]; !exists {
+	for _, key := range vars1.Keys {
+		if _, exists := vars2.Values[key]; !exists {
 			onlyInFile1 = append(onlyInFile1, key)
 		}
 	}
 
-	for key := range vars2 {
-		if _, exists := vars1[key]; !exists {
+	for _, key := range vars2.Keys {
+		if _, exists := vars1.Values[key]; !exists {
 			onlyInFile2 = append(onlyInFile2, key)
 		}
 	}
@@ -40,13 +82,21 @@ func CompareKeys(vars1, vars2 map[string]interface{}) ([]string, []string) {
 	return onlyInFile1, onlyInFile2
 }
 
-func CompareValues(vars1, vars2 map[string]interface{}) map[string][2]interface{} {
+func CompareValues(vars1, vars2 *OrderedMap) map[string][2]interface{} {
 	differences := make(map[string][2]interface{})
-	for key, val1 := range vars1 {
-		if val2, exists := vars2[key]; exists && !cmp.Equal(val1, val2) {
+	for _, key := range vars1.Keys {
+		val1 := vars1.Values[key]
+		if val2, exists := vars2.Values[key]; exists && !cmp.Equal(val1, val2) {
 			differences[key] = [2]interface{}{val1, val2}
 		}
 	}
+
+	for _, key := range vars2.Keys {
+		if _, exists := vars1.Values[key]; exists && !cmp.Equal(vars1.Values[key], vars2.Values[key]) {
+			differences[key] = [2]interface{}{vars1.Values[key], vars2.Values[key]}
+		}
+	}
+
 	return differences
 }
 
@@ -67,17 +117,20 @@ func SaveComparisonResult(resultFilePath string, onlyInFile1, onlyInFile2 []stri
 	return ioutil.WriteFile(resultFilePath, data, 0644)
 }
 
-func saveValuesComparisonResult(resultFilePath string, differences map[string][2]interface{}) error {
-	result := struct {
-		Differences map[string][2]interface{} `yaml:"differences"`
-	}{
-		Differences: differences,
+func SaveValuesComparisonResult(resultFilePath string, differences map[string][2]interface{}) error {
+	keys := make([]string, 0, len(differences))
+	for key := range differences {
+		keys = append(keys, key)
 	}
+	sort.Strings(keys)
 
-	data, err := yaml.Marshal(result)
-	if err != nil {
-		return err
+	var builder strings.Builder
+	builder.WriteString("Differences in values:\n")
+	for _, key := range keys {
+		vals := differences[key]
+		builder.WriteString(fmt.Sprintf("%s: %v -> %v\n", key, vals[0], vals[1]))
 	}
+	builder.WriteString("Comparison completed successfully.")
 
-	return os.WriteFile(resultFilePath, data, 0644)
+	return ioutil.WriteFile(resultFilePath, []byte(builder.String()), 0644)
 }

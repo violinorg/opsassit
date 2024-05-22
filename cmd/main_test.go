@@ -6,6 +6,6 @@ import (
 
 func TestMain(t *testing.T) {
 	t.Run("TestDrainCmd", TestDrainCmd)
-	t.Run("TestDiffKeysCmd", TestDiffKeysCmd)
-	t.Run("TestDiffValuesCmd", TestDiffValuesCmd)
+	t.Run("TestDiffKeysCommand", TestDiffKeysCommand)
+	t.Run("TestDiffValuesCommand", TestDiffValuesCommand)
 }

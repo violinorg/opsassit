@@ -10,11 +10,11 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func TestDiffValuesCmd(t *testing.T) {
+func TestDiffValuesCommand(t *testing.T) {
 	// Paths to test files
-	file1Path := filepath.Join("tests", "diff_values", "file1.yaml")
-	file2Path := filepath.Join("tests", "diff_values", "file2.yaml")
-	expectedOutputPath := filepath.Join("tests", "diff_values", "expected_output.txt")
+	file1Path := filepath.Join("../tests", "diff_values", "file1.yaml")
+	file2Path := filepath.Join("../tests", "diff_values", "file2.yaml")
+	expectedOutputPath := filepath.Join("../tests", "diff_values", "expected_output.txt")
 
 	// Read expected output
 	expectedOutput, err := os.ReadFile(expectedOutputPath)

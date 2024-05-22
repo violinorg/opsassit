@@ -20,12 +20,12 @@ func diffKeysCmd() *cli.Command {
 			file2Path := c.Args().Get(1)
 			autoMR := c.Bool("auto-mr")
 
-			vars1, err := actions.LoadVariablesFromYAML(file1Path)
+			vars1, err := actions.LoadVariablesFromYAMLWithOrder(file1Path)
 			if err != nil {
 				return fmt.Errorf("error loading file1: %v", err)
 			}
 
-			vars2, err := actions.LoadVariablesFromYAML(file2Path)
+			vars2, err := actions.LoadVariablesFromYAMLWithOrder(file2Path)
 			if err != nil {
 				return fmt.Errorf("error loading file2: %v", err)
 			}
