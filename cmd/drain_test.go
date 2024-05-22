@@ -15,11 +15,17 @@ func TestDrainCmd(t *testing.T) {
 	file1Path := filepath.Join("../tests", "drain", "file1.yaml")
 	file2Path := filepath.Join("../tests", "drain", "file2.yaml")
 	expectedPath := filepath.Join("../tests", "drain", "expected.yaml")
+	expectedPreviewPath := filepath.Join("../tests", "drain", "expected_preview.txt")
 
-	// Read expected output
+	// Read expected outputs
 	expected, err := os.ReadFile(expectedPath)
 	if err != nil {
 		t.Fatalf("Failed to read expected output: %v", err)
+	}
+
+	expectedPreview, err := os.ReadFile(expectedPreviewPath)
+	if err != nil {
+		t.Fatalf("Failed to read expected preview output: %v", err)
 	}
 
 	// Set up the CLI app
@@ -32,7 +38,7 @@ func TestDrainCmd(t *testing.T) {
 	os.Setenv("FILE1_PATH", file1Path)
 	os.Setenv("FILE2_PATH", file2Path)
 
-	// Run the CLI app with the drain command
+	// Run the CLI app with the drain command without --approved
 	var buf bytes.Buffer
 	app.Writer = &buf
 	err = app.Run([]string{"app", "drain"})
@@ -40,13 +46,27 @@ func TestDrainCmd(t *testing.T) {
 		t.Fatalf("Failed to run drain command: %v", err)
 	}
 
-	// Check the output
+	// Check the preview output
+	previewStr := strings.TrimSpace(string(expectedPreview))
+	actualPreviewStr := strings.TrimSpace(buf.String())
+
+	if previewStr != actualPreviewStr {
+		t.Fatalf("Expected preview:\n%s\nGot:\n%s", previewStr, actualPreviewStr)
+	}
+
+	// Reset buffer and run the CLI app with the drain command with --approved
+	buf.Reset()
+	err = app.Run([]string{"app", "drain", "--approved"})
+	if err != nil {
+		t.Fatalf("Failed to run drain command with --approved: %v", err)
+	}
+
+	// Check the output file
 	content, err := os.ReadFile(file1Path)
 	if err != nil {
 		t.Fatalf("Failed to read file1: %v", err)
 	}
 
-	// Trim spaces and newlines for a more lenient comparison
 	expectedStr := strings.TrimSpace(string(expected))
 	contentStr := strings.TrimSpace(string(content))
 

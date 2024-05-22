@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 	"github.com/violinorg/opsassit/actions"
 	"os"
@@ -25,7 +26,7 @@ func drainCmd() *cli.Command {
 				file2Path = c.Args().Get(1)
 			}
 
-			autoMR := c.Bool("auto-mr")
+			approved := c.Bool("approved")
 
 			// Read file1 to check for "# OpsAssist Verified"
 			file1Content, err := os.ReadFile(file1Path)
@@ -53,31 +54,43 @@ func drainCmd() *cli.Command {
 				return fmt.Errorf("error generating updated YAML: %v", err)
 			}
 
-			updatedYAML += "\n# OpsAssist Verified\n"
-
-			err = os.WriteFile(file1Path, []byte(updatedYAML), 0644)
-			if err != nil {
-				return fmt.Errorf("error writing updated YAML to file1: %v", err)
+			// Output the changes
+			fmt.Println("Announcing changes:")
+			for _, key := range vars1.Keys {
+				val1 := vars1.Values[key]
+				if val2, exists := vars2.Values[key]; exists && !actions.ValuesEqual(val1, val2) {
+					color.New(color.FgGreen).Printf("# Added from file2 - %s: %v\n", key, val2)
+					fmt.Printf("%s: %v\n", key, val1)
+				} else {
+					fmt.Printf("%s: %v\n", key, val1)
+				}
+			}
+			for _, key := range vars2.Keys {
+				if _, exists := vars1.Values[key]; !exists {
+					color.New(color.FgGreen).Printf("%s: %v\n", key, vars2.Values[key])
+				}
 			}
 
-			fmt.Println("Successfully drained keys from file2 to file1.")
+			if approved {
+				updatedYAML += "\n# OpsAssist Verified\n"
 
-			if autoMR {
-				gitlabURL := c.String("gitlab-url")
-				gitlabToken := c.String("gitlab-token")
-				projectID := c.String("project-id")
-				baseBranch := c.String("base-branch")
-				newBranch := c.String("new-branch")
-				targetBranch := c.String("target-branch")
-
-				err = actions.HandleGitLabMergeRequest(gitlabURL, gitlabToken, file1Path, baseBranch, newBranch, targetBranch, projectID)
+				err = os.WriteFile(file1Path, []byte(updatedYAML), 0644)
 				if err != nil {
-					return fmt.Errorf("error handling GitLab merge request: %v", err)
+					return fmt.Errorf("error writing updated YAML to file1: %v", err)
 				}
+
+				fmt.Println("Successfully drained keys from file2 to file1.")
+			} else {
+				fmt.Println("Run the command with --approved to apply these changes.")
 			}
 
 			return nil
 		},
-		Flags: addGitLabFlags(nil),
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:  "approved",
+				Usage: "Apply the changes to the file",
+			},
+		},
 	}
 }

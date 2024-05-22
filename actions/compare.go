@@ -57,7 +57,7 @@ func GenerateUpdatedYAML(vars1, vars2 *OrderedMap) (string, error) {
 	// Add keys from vars2 that do not exist in vars1, preserving the order from vars2
 	for _, key := range vars2.Keys {
 		if _, exists := vars1.Values[key]; !exists {
-			builder.WriteString(fmt.Sprintf("%s: %v\n", key, vars2.Values[key]))
+			builder.WriteString(fmt.Sprintf("# Added from file2\n%s: %v\n", key, vars2.Values[key]))
 		}
 	}
 
@@ -133,4 +133,8 @@ func SaveValuesComparisonResult(resultFilePath string, differences map[string][2
 	builder.WriteString("Comparison completed successfully.")
 
 	return ioutil.WriteFile(resultFilePath, []byte(builder.String()), 0644)
+}
+
+func ValuesEqual(val1, val2 interface{}) bool {
+	return cmp.Equal(val1, val2)
 }
