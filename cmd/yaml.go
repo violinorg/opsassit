@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"strings"
 
+	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 	"github.com/violinorg/opsassit/actions"
 )
@@ -27,26 +29,29 @@ func diffCmd() *cli.Command {
 		Action:    diffAction,
 		Flags: addGitLabFlags([]cli.Flag{
 			&cli.BoolFlag{
-				Name:  "approved",
-				Usage: "Apply the changes to the file",
+				Name:    "approved",
+				Usage:   "Apply the changes to the file",
+				EnvVars: []string{"OA_YAML_DIFF_APPROVE"},
 			},
 			&cli.StringFlag{
-				Name:  "output",
-				Usage: "Output file path",
+				Name:    "output",
+				Usage:   "Output file path",
+				Value:   "oa_diff_output.yaml",
+				EnvVars: []string{"OA_YAML_DIFF_OUTPUT_PATH"},
 			},
 			&cli.StringFlag{
-				Name:  "format",
-				Usage: "Output format (all, values, keys)",
+				Name:    "format",
+				Usage:   "Output format (all, values, keys, string)",
+				Value:   "all",
+				EnvVars: []string{"OA_YAML_DIFF_FORMAT"},
 			},
 		}),
 	}
 }
 
 func diffAction(c *cli.Context) error {
-	file1Path := os.Getenv("FILE1_PATH")
-	file2Path := os.Getenv("FILE2_PATH")
-	outputPath := os.Getenv("OA_DRAIN_OUTPUT")
-
+	file1Path := os.Getenv("OA_YAML_DIFF_FILE1_PATH")
+	file2Path := os.Getenv("OA_YAML_DIFF_FILE2_PATH")
 	if file1Path == "" || file2Path == "" {
 		if c.NArg() != 2 {
 			return fmt.Errorf("expected exactly 2 arguments")
@@ -55,16 +60,13 @@ func diffAction(c *cli.Context) error {
 		file2Path = c.Args().Get(1)
 	}
 
+	outputPath := os.Getenv("OA_YAML_DIFF_OUTPUT_PATH")
 	if outputPath == "" {
 		outputPath = c.String("output")
 	}
 
-	format := c.String("format")
-	if format == "" {
-		format = "all"
-	}
-
 	approved := c.Bool("approved")
+	format := c.String("format")
 
 	// Read file1 to check for "# OpsAssist Verified"
 	file1Content, err := os.ReadFile(file1Path)
@@ -77,6 +79,8 @@ func diffAction(c *cli.Context) error {
 		return nil
 	}
 
+	var updatedYAML string
+
 	vars1, err := actions.LoadVariablesFromYAMLWithOrder(file1Path)
 	if err != nil {
 		return fmt.Errorf("error loading file1: %v", err)
@@ -86,8 +90,6 @@ func diffAction(c *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("error loading file2: %v", err)
 	}
-
-	var updatedYAML string
 
 	switch format {
 	case "values":
@@ -102,6 +104,11 @@ func diffAction(c *cli.Context) error {
 		if err != nil {
 			return fmt.Errorf("error generating keys comparison YAML: %v", err)
 		}
+	case "string":
+		updatedYAML, err = compareYAMLFilesLineByLine(file1Path, file2Path)
+		if err != nil {
+			return fmt.Errorf("error comparing files line by line: %v", err)
+		}
 	case "all":
 		fallthrough
 	default:
@@ -112,13 +119,16 @@ func diffAction(c *cli.Context) error {
 	}
 
 	// Output the changes
-	fmt.Println("Proposed changes:")
+	color.New(color.FgHiYellow).Println("Announcing changes:")
 	fmt.Println(updatedYAML)
 
 	if approved {
-		updatedYAML += "\n# OpsAssist Verified\n"
+		// Clearing color signs
+		cleanYAML := actions.CleanColorCodes(updatedYAML)
+		// Add file verification success flag
+		cleanYAML = "# OpsAssist Verified\n" + cleanYAML
 
-		err = os.WriteFile(outputPath, []byte(updatedYAML), 0644)
+		err = os.WriteFile(outputPath, []byte(cleanYAML), 0644)
 		if err != nil {
 			return fmt.Errorf("error writing updated YAML to output file: %v", err)
 		}
@@ -141,8 +151,61 @@ func diffAction(c *cli.Context) error {
 		}
 
 	} else {
-		fmt.Println("Run the command with --approved to apply these changes.")
+		fmt.Printf("Run the command with --approved to apply these changes for %v\n", color.New(color.FgYellow).Sprint(outputPath))
 	}
 
 	return nil
+}
+
+func compareYAMLFilesLineByLine(file1Path, file2Path string) (string, error) {
+	file1, err := os.Open(file1Path)
+	if err != nil {
+		return "", fmt.Errorf("error opening file1: %v", err)
+	}
+	defer file1.Close()
+
+	file2, err := os.Open(file2Path)
+	if err != nil {
+		return "", fmt.Errorf("error opening file2: %v", err)
+	}
+	defer file2.Close()
+
+	var result strings.Builder
+
+	scanner1 := bufio.NewScanner(file1)
+	scanner2 := bufio.NewScanner(file2)
+
+	lineNum := 1
+	for scanner1.Scan() || scanner2.Scan() {
+		line1 := ""
+		if scanner1.Scan() {
+			line1 = scanner1.Text()
+		}
+		line2 := ""
+		if scanner2.Scan() {
+			line2 = scanner2.Text()
+		}
+
+		if line1 != line2 {
+			if line1 != "" {
+				color.New(color.FgHiRed).Fprintf(&result, "%d: - %s\n", lineNum, line1)
+			}
+			if line2 != "" {
+				color.New(color.FgHiGreen).Fprintf(&result, "%d: + %s\n", lineNum, line2)
+			}
+		} else {
+			result.WriteString(fmt.Sprintf("%d:   %s\n", lineNum, line1))
+		}
+
+		lineNum++
+	}
+
+	if err := scanner1.Err(); err != nil {
+		return "", fmt.Errorf("error reading file1: %v", err)
+	}
+	if err := scanner2.Err(); err != nil {
+		return "", fmt.Errorf("error reading file2: %v", err)
+	}
+
+	return result.String(), nil
 }

@@ -2,9 +2,11 @@ package actions
 
 import (
 	"fmt"
+	"github.com/fatih/color"
 	"github.com/google/go-cmp/cmp"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -43,21 +45,21 @@ func LoadVariablesFromYAMLWithOrder(filePath string) (*OrderedMap, error) {
 
 func GenerateUpdatedYAML(vars1, vars2 *OrderedMap) (string, error) {
 	var builder strings.Builder
-	builder.WriteString("---\n")
 
 	// Preserve the order of keys from vars1
 	for _, key := range vars1.Keys {
 		val1 := vars1.Values[key]
-		if val2, exists := vars2.Values[key]; exists && !cmp.Equal(val1, val2) {
-			builder.WriteString(fmt.Sprintf("# from file2 - %s: %v\n", key, val2))
-		}
+		// Enhanced output comparing different values for the same keys
+		// if val2, exists := vars2.Values[key]; exists && !cmp.Equal(val1, val2) {
+		//	 builder.WriteString(color.New(color.FgHiGreen).Sprintf("# Added from file2 - %s: %v\n", key, val2))
+		// }
 		builder.WriteString(fmt.Sprintf("%s: %v\n", key, val1))
 	}
 
 	// Add keys from vars2 that do not exist in vars1, preserving the order from vars2
 	for _, key := range vars2.Keys {
 		if _, exists := vars1.Values[key]; !exists {
-			builder.WriteString(fmt.Sprintf("# Added from file2\n%s: %v\n", key, vars2.Values[key]))
+			builder.WriteString(color.New(color.FgHiGreen).Sprintf("# Added from file2\n%s: %v\n", key, vars2.Values[key]))
 		}
 	}
 
@@ -66,9 +68,8 @@ func GenerateUpdatedYAML(vars1, vars2 *OrderedMap) (string, error) {
 
 func GenerateValuesComparisonYAML(differences map[string][2]interface{}) (string, error) {
 	var builder strings.Builder
-	builder.WriteString("---\nDifferences in values:\n")
 	for key, vals := range differences {
-		builder.WriteString(fmt.Sprintf("%s: %v -> %v\n", key, vals[0], vals[1]))
+		builder.WriteString(fmt.Sprintf("%s: %v -> %v\n", color.New(color.FgHiBlue).Sprint(key), vals[0], color.New(color.FgHiGreen).Sprint(vals[1])))
 	}
 	builder.WriteString("Comparison completed successfully.\n")
 	return builder.String(), nil
@@ -76,11 +77,11 @@ func GenerateValuesComparisonYAML(differences map[string][2]interface{}) (string
 
 func GenerateKeysComparisonYAML(onlyInFile1, onlyInFile2 []string) (string, error) {
 	var builder strings.Builder
-	builder.WriteString("---\nKeys only in file1:\n")
+	builder.WriteString(color.New(color.FgHiBlue).Sprintf("\nKeys only in file1:\n"))
 	for _, key := range onlyInFile1 {
 		builder.WriteString(fmt.Sprintf("- %s\n", key))
 	}
-	builder.WriteString("\nKeys only in file2:\n")
+	builder.WriteString(color.New(color.FgHiBlue).Sprintf("\nKeys only in file2:\n"))
 	for _, key := range onlyInFile2 {
 		builder.WriteString(fmt.Sprintf("- %s\n", key))
 	}
@@ -124,21 +125,8 @@ func CompareValues(vars1, vars2 *OrderedMap) map[string][2]interface{} {
 	return differences
 }
 
-// OLD Code
-//func SaveValuesComparisonResult(resultFilePath string, differences map[string][2]interface{}) error {
-//	keys := make([]string, 0, len(differences))
-//	for key := range differences {
-//		keys = append(keys, key)
-//	}
-//	sort.Strings(keys)
-//
-//	var builder strings.Builder
-//	builder.WriteString("Differences in values:\n")
-//	for _, key := range keys {
-//		vals := differences[key]
-//		builder.WriteString(fmt.Sprintf("%s: %v -> %v\n", key, vals[0], vals[1]))
-//	}
-//	builder.WriteString("Comparison completed successfully.")
-//
-//	return ioutil.WriteFile(resultFilePath, []byte(builder.String()), 0644)
-//}
+// Функция для удаления цветовых указателей из строки
+func removeColorCodes(input string) string {
+	colorCodeRegex := regexp.MustCompile(`\x1b\[[0-9;]*[mK]`)
+	return colorCodeRegex.ReplaceAllString(input, "")
+}
