@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/urfave/cli/v2"
 	"github.com/violinorg/opsassit/actions"
 )
@@ -27,14 +29,37 @@ func autoMrCmd() *cli.Command {
 }
 
 func autoMrAction(c *cli.Context) error {
-	filePath := c.Args().First()
+	// Сначала получаем значения из переменных окружения
+	filePath := os.Getenv("OA_GITLAB_AUTOMR_FILE_PATH")
+	gitlabURL := os.Getenv("OA_GITLAB_URL")
+	gitlabToken := os.Getenv("OA_GITLAB_TOKEN")
+	projectID := os.Getenv("OA_GITLAB_PROJECT_ID")
+	baseBranch := os.Getenv("OA_GITLAB_BASE_BRANCH")
+	newBranch := os.Getenv("OA_GITLAB_NEW_BRANCH")
+	targetBranch := os.Getenv("OA_GITLAB_TARGET_BRANCH")
 
-	gitlabURL := c.String("gitlab-url")
-	gitlabToken := c.String("gitlab-token")
-	projectID := c.String("project-id")
-	baseBranch := c.String("base-branch")
-	newBranch := c.String("new-branch")
-	targetBranch := c.String("target-branch")
+	// Затем переопределяем их значениями из флагов, если они указаны
+	if c.Args().Get(0) != "" {
+		filePath = c.Args().Get(0)
+	}
+	if c.String("gitlab-url") != "" {
+		gitlabURL = c.String("gitlab-url")
+	}
+	if c.String("gitlab-token") != "" {
+		gitlabToken = c.String("gitlab-token")
+	}
+	if c.String("project-id") != "" {
+		projectID = c.String("project-id")
+	}
+	if c.String("base-branch") != "" {
+		baseBranch = c.String("base-branch")
+	}
+	if c.String("new-branch") != "" {
+		newBranch = c.String("new-branch")
+	}
+	if c.String("target-branch") != "" {
+		targetBranch = c.String("target-branch")
+	}
 
 	missingParameters := []string{}
 	if filePath == "" {
