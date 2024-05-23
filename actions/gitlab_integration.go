@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/fatih/color"
 	"github.com/xanzy/go-gitlab"
 )
 
@@ -28,7 +29,7 @@ func ReadFileContent(filePath string) (string, error) {
 
 // CreateBranch создает новую ветку в GitLab
 func CreateBranch(client *gitlab.Client, projectID int, newBranch, baseBranch string) error {
-	_, resp, err := client.Branches.CreateBranch(projectID, &gitlab.CreateBranchOptions{
+	branch, resp, err := client.Branches.CreateBranch(projectID, &gitlab.CreateBranchOptions{
 		Branch: &newBranch,
 		Ref:    &baseBranch,
 	})
@@ -36,8 +37,9 @@ func CreateBranch(client *gitlab.Client, projectID int, newBranch, baseBranch st
 		return fmt.Errorf("error creating branch: %v", err)
 	}
 	if resp.StatusCode == 400 {
-		// Branch already exists
-		fmt.Println("Branch already exists, proceeding with existing branch.")
+		color.New(color.FgBlue).Printf("Branch already exists: %s\n", newBranch)
+	} else {
+		color.New(color.FgGreen).Printf("Branch created: %s\n", branch.WebURL)
 	}
 	return nil
 }
@@ -101,11 +103,11 @@ func CreateMergeRequest(client *gitlab.Client, projectID int, sourceBranch, targ
 	}
 
 	if mrExists {
-		fmt.Println("Merge request already exists, proceeding with existing merge request.")
+		color.New(color.FgBlue).Printf("Merge request already exists for branch: %s\n", sourceBranch)
 		return nil
 	}
 
-	_, _, err = client.MergeRequests.CreateMergeRequest(projectID, &gitlab.CreateMergeRequestOptions{
+	mr, _, err := client.MergeRequests.CreateMergeRequest(projectID, &gitlab.CreateMergeRequestOptions{
 		SourceBranch: &sourceBranch,
 		TargetBranch: &targetBranch,
 		Title:        gitlab.String(title),
@@ -114,6 +116,7 @@ func CreateMergeRequest(client *gitlab.Client, projectID int, sourceBranch, targ
 	if err != nil {
 		return fmt.Errorf("error creating merge request: %v", err)
 	}
+	color.New(color.FgGreen).Printf("Merge request created: %s\n", mr.WebURL)
 	return nil
 }
 

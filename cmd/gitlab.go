@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-
 	"github.com/urfave/cli/v2"
 	"github.com/violinorg/opsassit/actions"
 )
@@ -22,41 +20,47 @@ func autoMrCmd() *cli.Command {
 	return &cli.Command{
 		Name:      "auto-mr",
 		Usage:     "Automatically create a merge request",
-		ArgsUsage: "[filePath] [baseBranch] [newBranch] [targetBranch] [projectID]",
+		ArgsUsage: "[filePath]",
 		Action:    autoMrAction,
 		Flags:     addGitLabFlags(nil),
 	}
 }
 
 func autoMrAction(c *cli.Context) error {
-	filePath := os.Getenv("OA_GITLAB_AUTOMR_FILE_PATH")
-	gitlabURL := os.Getenv("OA_GITLAB_URL")
-	gitlabToken := os.Getenv("OA_GITLAB_TOKEN")
-	projectID := os.Getenv("OA_GITLAB_PROJECT_ID")
-	baseBranch := os.Getenv("OA_GITLAB_BASE_BRANCH")
-	newBranch := os.Getenv("OA_GITLAB_NEW_BRANCH")
-	targetBranch := os.Getenv("OA_GITLAB_TARGET_BRANCH")
+	filePath := c.Args().First()
 
+	gitlabURL := c.String("gitlab-url")
+	gitlabToken := c.String("gitlab-token")
+	projectID := c.String("project-id")
+	baseBranch := c.String("base-branch")
+	newBranch := c.String("new-branch")
+	targetBranch := c.String("target-branch")
+
+	missingParameters := []string{}
 	if filePath == "" {
-		filePath = c.Args().Get(0)
+		missingParameters = append(missingParameters, "filePath")
 	}
 	if gitlabURL == "" {
-		gitlabURL = c.String("gitlab-url")
+		missingParameters = append(missingParameters, "gitlab-url")
 	}
 	if gitlabToken == "" {
-		gitlabToken = c.String("gitlab-token")
+		missingParameters = append(missingParameters, "gitlab-token")
 	}
 	if projectID == "" {
-		projectID = c.String("project-id")
+		missingParameters = append(missingParameters, "project-id")
 	}
 	if baseBranch == "" {
-		baseBranch = c.String("base-branch")
+		missingParameters = append(missingParameters, "base-branch")
 	}
 	if newBranch == "" {
-		newBranch = c.String("new-branch")
+		missingParameters = append(missingParameters, "new-branch")
 	}
 	if targetBranch == "" {
-		targetBranch = c.String("target-branch")
+		missingParameters = append(missingParameters, "target-branch")
+	}
+
+	if len(missingParameters) > 0 {
+		return fmt.Errorf("missing required parameters: %v", missingParameters)
 	}
 
 	err := actions.HandleGitLabMergeRequest(gitlabURL, gitlabToken, filePath, baseBranch, newBranch, targetBranch, projectID)
