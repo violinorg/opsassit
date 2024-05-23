@@ -6,6 +6,7 @@ dist/
 
 # Package build directory
 builds/
+files/
 # Development
 dev.local
 

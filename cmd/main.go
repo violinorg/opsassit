@@ -10,8 +10,8 @@ func CreateApp() *cli.App {
 	app.Name = "OpsAssist"
 	app.Usage = "A CLI tool for YAML file operations"
 	app.Commands = []*cli.Command{
-		drainCmd(),
-		diffValuesCmd(),
+		yamlCmd(),
+		gitlabCmd(),
 	}
 	return app
 }

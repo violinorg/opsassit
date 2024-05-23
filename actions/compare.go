@@ -64,6 +64,30 @@ func GenerateUpdatedYAML(vars1, vars2 *OrderedMap) (string, error) {
 	return builder.String(), nil
 }
 
+func GenerateValuesComparisonYAML(differences map[string][2]interface{}) (string, error) {
+	var builder strings.Builder
+	builder.WriteString("---\nDifferences in values:\n")
+	for key, vals := range differences {
+		builder.WriteString(fmt.Sprintf("%s: %v -> %v\n", key, vals[0], vals[1]))
+	}
+	builder.WriteString("Comparison completed successfully.\n")
+	return builder.String(), nil
+}
+
+func GenerateKeysComparisonYAML(onlyInFile1, onlyInFile2 []string) (string, error) {
+	var builder strings.Builder
+	builder.WriteString("---\nKeys only in file1:\n")
+	for _, key := range onlyInFile1 {
+		builder.WriteString(fmt.Sprintf("- %s\n", key))
+	}
+	builder.WriteString("\nKeys only in file2:\n")
+	for _, key := range onlyInFile2 {
+		builder.WriteString(fmt.Sprintf("- %s\n", key))
+	}
+	builder.WriteString("Comparison completed successfully.\n")
+	return builder.String(), nil
+}
+
 func CompareKeys(vars1, vars2 *OrderedMap) ([]string, []string) {
 	var onlyInFile1, onlyInFile2 []string
 
@@ -100,41 +124,21 @@ func CompareValues(vars1, vars2 *OrderedMap) map[string][2]interface{} {
 	return differences
 }
 
-func SaveComparisonResult(resultFilePath string, onlyInFile1, onlyInFile2 []string) error {
-	result := struct {
-		OnlyInFile1 []string `yaml:"only_in_file1"`
-		OnlyInFile2 []string `yaml:"only_in_file2"`
-	}{
-		OnlyInFile1: onlyInFile1,
-		OnlyInFile2: onlyInFile2,
-	}
-
-	data, err := yaml.Marshal(result)
-	if err != nil {
-		return err
-	}
-
-	return ioutil.WriteFile(resultFilePath, data, 0644)
-}
-
-func SaveValuesComparisonResult(resultFilePath string, differences map[string][2]interface{}) error {
-	keys := make([]string, 0, len(differences))
-	for key := range differences {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-
-	var builder strings.Builder
-	builder.WriteString("Differences in values:\n")
-	for _, key := range keys {
-		vals := differences[key]
-		builder.WriteString(fmt.Sprintf("%s: %v -> %v\n", key, vals[0], vals[1]))
-	}
-	builder.WriteString("Comparison completed successfully.")
-
-	return ioutil.WriteFile(resultFilePath, []byte(builder.String()), 0644)
-}
-
-func ValuesEqual(val1, val2 interface{}) bool {
-	return cmp.Equal(val1, val2)
-}
+// OLD Code
+//func SaveValuesComparisonResult(resultFilePath string, differences map[string][2]interface{}) error {
+//	keys := make([]string, 0, len(differences))
+//	for key := range differences {
+//		keys = append(keys, key)
+//	}
+//	sort.Strings(keys)
+//
+//	var builder strings.Builder
+//	builder.WriteString("Differences in values:\n")
+//	for _, key := range keys {
+//		vals := differences[key]
+//		builder.WriteString(fmt.Sprintf("%s: %v -> %v\n", key, vals[0], vals[1]))
+//	}
+//	builder.WriteString("Comparison completed successfully.")
+//
+//	return ioutil.WriteFile(resultFilePath, []byte(builder.String()), 0644)
+//}

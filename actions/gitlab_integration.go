@@ -8,93 +8,145 @@ import (
 	"github.com/xanzy/go-gitlab"
 )
 
-type GitLabClient struct {
-	client *gitlab.Client
-}
-
-func NewGitLabClient(url, token string) (*GitLabClient, error) {
-	client, err := gitlab.NewClient(token, gitlab.WithBaseURL(url))
+// CreateGitLabClient создает клиент GitLab
+func CreateGitLabClient(gitlabURL, gitlabToken string) (*gitlab.Client, error) {
+	client, err := gitlab.NewClient(gitlabToken, gitlab.WithBaseURL(gitlabURL))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating GitLab client: %v", err)
 	}
-	return &GitLabClient{client: client}, nil
+	return client, nil
 }
 
-func (g *GitLabClient) CreateBranch(projectID int, branchName, baseBranch string) error {
-	branch, _, err := g.client.Branches.CreateBranch(projectID, &gitlab.CreateBranchOptions{
-		Branch: gitlab.String(branchName),
-		Ref:    gitlab.String(baseBranch),
+// ReadFileContent читает содержимое файла
+func ReadFileContent(filePath string) (string, error) {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", fmt.Errorf("error reading file: %v", err)
+	}
+	return string(content), nil
+}
+
+// CreateBranch создает новую ветку в GitLab
+func CreateBranch(client *gitlab.Client, projectID int, newBranch, baseBranch string) error {
+	_, resp, err := client.Branches.CreateBranch(projectID, &gitlab.CreateBranchOptions{
+		Branch: &newBranch,
+		Ref:    &baseBranch,
 	})
-	if err != nil {
-		return err
+	if err != nil && resp.StatusCode != 400 {
+		return fmt.Errorf("error creating branch: %v", err)
 	}
-	fmt.Printf("Created branch: %s\n", branch.Name)
+	if resp.StatusCode == 400 {
+		// Branch already exists
+		fmt.Println("Branch already exists, proceeding with existing branch.")
+	}
 	return nil
 }
 
-func (g *GitLabClient) CreateFile(projectID int, branchName, filePath, content string) error {
-	commitAction := gitlab.CommitActionOptions{
-		Action:   gitlab.FileAction(gitlab.FileCreate),
-		FilePath: gitlab.String(filePath),
-		Content:  gitlab.String(content),
+// FileExists проверяет, существует ли файл в GitLab
+func FileExists(client *gitlab.Client, projectID int, filePath, branch string) (bool, error) {
+	_, resp, err := client.RepositoryFiles.GetFile(projectID, filePath, &gitlab.GetFileOptions{Ref: gitlab.String(branch)})
+	if err != nil && resp.StatusCode != 404 {
+		return false, fmt.Errorf("error checking file existence: %v", err)
 	}
+	return resp.StatusCode == 200, nil
+}
 
-	commitMessage := "Add comparison result file"
-	_, _, err := g.client.Commits.CreateCommit(projectID, &gitlab.CreateCommitOptions{
-		Branch:        gitlab.String(branchName),
-		CommitMessage: gitlab.String(commitMessage),
-		Actions:       []*gitlab.CommitActionOptions{&commitAction},
-	})
+// CreateOrUpdateFile создает или обновляет файл в GitLab
+func CreateOrUpdateFile(client *gitlab.Client, projectID int, filePath, content, branch, commitMessage string) error {
+	fileExists, err := FileExists(client, projectID, filePath, branch)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Created file: %s\n", filePath)
+
+	if fileExists {
+		_, _, err = client.RepositoryFiles.UpdateFile(projectID, filePath, &gitlab.UpdateFileOptions{
+			Branch:        &branch,
+			Content:       gitlab.String(content),
+			CommitMessage: gitlab.String(commitMessage),
+		})
+	} else {
+		_, _, err = client.RepositoryFiles.CreateFile(projectID, filePath, &gitlab.CreateFileOptions{
+			Branch:        &branch,
+			Content:       gitlab.String(content),
+			CommitMessage: gitlab.String(commitMessage),
+		})
+	}
+	if err != nil {
+		return fmt.Errorf("error creating or updating file: %v", err)
+	}
 	return nil
 }
 
-func (g *GitLabClient) CreateMergeRequest(projectID int, sourceBranch, targetBranch, title string) error {
-	mr, _, err := g.client.MergeRequests.CreateMergeRequest(projectID, &gitlab.CreateMergeRequestOptions{
-		SourceBranch: gitlab.String(sourceBranch),
-		TargetBranch: gitlab.String(targetBranch),
+// MergeRequestExists проверяет, существует ли merge request для данной ветки
+func MergeRequestExists(client *gitlab.Client, projectID int, sourceBranch, targetBranch string) (bool, error) {
+	opts := &gitlab.ListProjectMergeRequestsOptions{
+		SourceBranch: &sourceBranch,
+		TargetBranch: &targetBranch,
+		State:        gitlab.String("opened"),
+	}
+
+	mrs, _, err := client.MergeRequests.ListProjectMergeRequests(projectID, opts)
+	if err != nil {
+		return false, fmt.Errorf("error checking merge request existence: %v", err)
+	}
+
+	return len(mrs) > 0, nil
+}
+
+// CreateMergeRequest создает merge request в GitLab
+func CreateMergeRequest(client *gitlab.Client, projectID int, sourceBranch, targetBranch, title, description string) error {
+	mrExists, err := MergeRequestExists(client, projectID, sourceBranch, targetBranch)
+	if err != nil {
+		return err
+	}
+
+	if mrExists {
+		fmt.Println("Merge request already exists, proceeding with existing merge request.")
+		return nil
+	}
+
+	_, _, err = client.MergeRequests.CreateMergeRequest(projectID, &gitlab.CreateMergeRequestOptions{
+		SourceBranch: &sourceBranch,
+		TargetBranch: &targetBranch,
 		Title:        gitlab.String(title),
+		Description:  gitlab.String(description),
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating merge request: %v", err)
 	}
-	fmt.Printf("Created Merge Request: %s\n", mr.Title)
 	return nil
 }
 
-func HandleGitLabMergeRequest(gitlabURL, gitlabToken, resultFilePath, baseBranch, newBranch, targetBranch, projectID string) error {
-	if gitlabURL == "" || gitlabToken == "" {
-		return fmt.Errorf("GitLab URL and Token must be provided")
-	}
-
-	gitlabClient, err := NewGitLabClient(gitlabURL, gitlabToken)
+// HandleGitLabMergeRequest выполняет все действия для создания merge request в GitLab
+func HandleGitLabMergeRequest(gitlabURL, gitlabToken, filePath, baseBranch, newBranch, targetBranch, projectID string) error {
+	client, err := CreateGitLabClient(gitlabURL, gitlabToken)
 	if err != nil {
-		return fmt.Errorf("error creating GitLab client: %v", err)
+		return err
 	}
 
 	projectIDInt, err := strconv.Atoi(projectID)
 	if err != nil {
-		return fmt.Errorf("error converting projectID to int: %v", err)
+		return fmt.Errorf("invalid project ID: %v", err)
 	}
 
-	if err = gitlabClient.CreateBranch(projectIDInt, newBranch, baseBranch); err != nil {
-		return fmt.Errorf("error creating branch: %v", err)
-	}
-
-	content, err := os.ReadFile(resultFilePath)
+	content, err := ReadFileContent(filePath)
 	if err != nil {
-		return fmt.Errorf("error reading result file: %v", err)
+		return err
 	}
 
-	if err = gitlabClient.CreateFile(projectIDInt, newBranch, resultFilePath, string(content)); err != nil {
-		return fmt.Errorf("error creating file: %v", err)
+	err = CreateBranch(client, projectIDInt, newBranch, baseBranch)
+	if err != nil {
+		return err
 	}
 
-	if err = gitlabClient.CreateMergeRequest(projectIDInt, newBranch, targetBranch, "WIP: Comparison Result"); err != nil {
-		return fmt.Errorf("error creating merge request: %v", err)
+	err = CreateOrUpdateFile(client, projectIDInt, filePath, content, newBranch, "Drained keys from file2 to output file")
+	if err != nil {
+		return err
+	}
+
+	err = CreateMergeRequest(client, projectIDInt, newBranch, targetBranch, "Drained keys from file2 to output file", "This merge request contains the changes after draining keys from file2 to the output file.")
+	if err != nil {
+		return err
 	}
 
 	return nil
