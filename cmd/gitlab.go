@@ -8,7 +8,7 @@ import (
 	"github.com/violinorg/opsassit/actions"
 )
 
-func gitlabCmd() *cli.Command {
+func GitlabCmd() *cli.Command {
 	return &cli.Command{
 		Name:  "gitlab",
 		Usage: "Commands for working with GitLab",

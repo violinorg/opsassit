@@ -1,0 +1,5 @@
+# OpsAssist Verified
+1: - var2: 20
+1: + var2: 25
+2: + var3: 30
+3:   

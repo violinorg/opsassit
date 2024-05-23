@@ -1,6 +1,0 @@
-var1: 10
-var2: "string1"
-var3: true
-var4:
-  - item1
-  - item2

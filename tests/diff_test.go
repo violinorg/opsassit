@@ -13,21 +13,15 @@ import (
 
 func TestDiffCmd(t *testing.T) {
 	// Paths to test files
-	file1Path := filepath.Join("..", "tests", "diff", "file1.yaml")
-	file2Path := filepath.Join("..", "tests", "diff", "file2.yaml")
-	expectedPath := filepath.Join("..", "tests", "diff", "expected.yaml")
-	expectedPreviewPath := filepath.Join("..", "tests", "diff", "expected_preview.txt")
-	outputPath := filepath.Join("..", "tests", "diff", "output.yaml")
+	file1Path := filepath.Join("diff", "file1.yaml")
+	file2Path := filepath.Join("diff", "file2.yaml")
+	expectedPath := filepath.Join("diff", "expected.yaml")
+	outputPath := filepath.Join("diff", "output.yaml")
 
 	// Read expected outputs
 	expected, err := os.ReadFile(expectedPath)
 	if err != nil {
 		t.Fatalf("Failed to read expected output: %v", err)
-	}
-
-	expectedPreview, err := os.ReadFile(expectedPreviewPath)
-	if err != nil {
-		t.Fatalf("Failed to read expected preview output: %v", err)
 	}
 
 	// Set up the CLI app
@@ -42,7 +36,7 @@ func TestDiffCmd(t *testing.T) {
 	os.Setenv("OA_DRAIN_OUTPUT", outputPath)
 
 	// Run the CLI app with the diff command without --approved
-	err = app.Run([]string{"app", "yaml", "diff"})
+	err = app.Run([]string{"app", "yaml", "diff", file1Path, file2Path})
 	if err != nil {
 		t.Fatalf("Failed to run diff command: %v", err)
 	}
@@ -65,7 +59,7 @@ func TestDiffCmd(t *testing.T) {
 	}
 
 	// Run the CLI app again to check for "The file is already tuned."
-	err = app.Run([]string{"app", "yaml", "diff"})
+	err = app.Run([]string{"app", "yaml", "diff", file1Path, file2Path})
 	if err != nil {
 		t.Fatalf("Failed to run diff command: %v", err)
 	}
@@ -77,9 +71,10 @@ func TestDiffCmd(t *testing.T) {
 
 func TestStringDiffCmd(t *testing.T) {
 	// Paths to test files
-	file1Path := filepath.Join("..", "tests", "diff", "file1.yaml")
-	file2Path := filepath.Join("..", "tests", "diff", "file2.yaml")
-	expectedStringDiffPath := filepath.Join("..", "tests", "diff", "expected_string_diff.txt")
+	file1Path := filepath.Join("diff", "file1.yaml")
+	file2Path := filepath.Join("diff", "file2.yaml")
+	expectedStringDiffPath := filepath.Join("diff", "expected_string_diff.txt")
+	outputStringDiffPath := filepath.Join("diff", "output_string_diff.txt")
 
 	// Read expected outputs
 	expectedStringDiff, err := os.ReadFile(expectedStringDiffPath)
@@ -96,15 +91,16 @@ func TestStringDiffCmd(t *testing.T) {
 	// Set up the environment variables
 	os.Setenv("FILE1_PATH", file1Path)
 	os.Setenv("FILE2_PATH", file2Path)
+	os.Setenv("OA_YAML_DIFF_OUTPUT_PATH", outputStringDiffPath)
 
 	// Run the CLI app with the diff command with --format string
-	err = app.Run([]string{"app", "yaml", "diff", "--format", "string"})
+	err = app.Run([]string{"app", "yaml", "diff", "--format", "string", file1Path, file2Path})
 	if err != nil {
 		t.Fatalf("Failed to run diff command with --format string: %v", err)
 	}
 
 	// Check the console output
-	content, err := os.ReadFile(file2Path) // Replace with actual output capture
+	content, err := os.ReadFile(outputStringDiffPath) // Replace with actual output capture
 	if err != nil {
 		t.Fatalf("Failed to read output file: %v", err)
 	}

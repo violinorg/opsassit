@@ -11,7 +11,7 @@ import (
 	"github.com/violinorg/opsassit/actions"
 )
 
-func yamlCmd() *cli.Command {
+func YamlCmd() *cli.Command {
 	return &cli.Command{
 		Name:  "yaml",
 		Usage: "Commands for working with YAML files",
