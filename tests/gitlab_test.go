@@ -1,10 +1,11 @@
-package cmd
+package tests
 
 import (
 	"os"
 	"testing"
 
 	"github.com/urfave/cli/v2"
+	"github.com/violinorg/opsassit/cmd"
 )
 
 func TestAutoMrCmd(t *testing.T) {
@@ -20,7 +21,7 @@ func TestAutoMrCmd(t *testing.T) {
 	// Set up the CLI app
 	app := cli.NewApp()
 	app.Commands = []*cli.Command{
-		gitlabCmd(),
+		cmd.GitlabCmd(),
 	}
 
 	// Run the CLI app with the auto-mr command
