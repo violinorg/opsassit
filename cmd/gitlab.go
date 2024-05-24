@@ -30,7 +30,8 @@ func autoMrCmd() *cli.Command {
 
 func autoMrAction(c *cli.Context) error {
 	// Сначала получаем значения из переменных окружения
-	filePath := os.Getenv("OA_GITLAB_AUTOMR_FILE_PATH")
+	srcFilePath := os.Getenv("OA_GITLAB_SOURCE_FILE_PATH")
+	filePath := os.Getenv("OA_GITLAB_FILE_PATH")
 	gitlabURL := os.Getenv("OA_GITLAB_URL")
 	gitlabToken := os.Getenv("OA_GITLAB_TOKEN")
 	projectID := os.Getenv("OA_GITLAB_PROJECT_ID")
@@ -42,11 +43,11 @@ func autoMrAction(c *cli.Context) error {
 	if c.Args().Get(0) != "" {
 		filePath = c.Args().Get(0)
 	}
-	if c.String("gitlab-url") != "" {
-		gitlabURL = c.String("gitlab-url")
+	if c.String("gitlabs-url") != "" {
+		gitlabURL = c.String("gitlabs-url")
 	}
-	if c.String("gitlab-token") != "" {
-		gitlabToken = c.String("gitlab-token")
+	if c.String("gitlabs-token") != "" {
+		gitlabToken = c.String("gitlabs-token")
 	}
 	if c.String("project-id") != "" {
 		projectID = c.String("project-id")
@@ -66,10 +67,10 @@ func autoMrAction(c *cli.Context) error {
 		missingParameters = append(missingParameters, "filePath")
 	}
 	if gitlabURL == "" {
-		missingParameters = append(missingParameters, "gitlab-url")
+		missingParameters = append(missingParameters, "gitlabs-url")
 	}
 	if gitlabToken == "" {
-		missingParameters = append(missingParameters, "gitlab-token")
+		missingParameters = append(missingParameters, "gitlabs-token")
 	}
 	if projectID == "" {
 		missingParameters = append(missingParameters, "project-id")
@@ -88,7 +89,7 @@ func autoMrAction(c *cli.Context) error {
 		return fmt.Errorf("missing required parameters: %v", missingParameters)
 	}
 
-	err := actions.HandleGitLabMergeRequest(gitlabURL, gitlabToken, filePath, baseBranch, newBranch, targetBranch, projectID)
+	err := actions.HandleGitLabMergeRequest(gitlabURL, gitlabToken, srcFilePath, filePath, baseBranch, newBranch, targetBranch, projectID)
 	if err != nil {
 		return fmt.Errorf("error handling GitLab merge request: %v", err)
 	}

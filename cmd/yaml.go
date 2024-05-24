@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"strings"
@@ -36,7 +35,7 @@ func diffCmd() *cli.Command {
 			&cli.StringFlag{
 				Name:    "output",
 				Usage:   "Output file path",
-				Value:   "oa_diff_output.yaml",
+				Value:   "output.yaml",
 				EnvVars: []string{"OA_YAML_DIFF_OUTPUT_PATH"},
 			},
 			&cli.StringFlag{
@@ -54,7 +53,7 @@ func diffAction(c *cli.Context) error {
 	file2Path := os.Getenv("OA_YAML_DIFF_FILE2_PATH")
 	if file1Path == "" || file2Path == "" {
 		if c.NArg() != 2 {
-			return fmt.Errorf("expected exactly 2 arguments")
+			return fmt.Errorf("expected exactly 2 arguments: file1_path file2_path")
 		}
 		file1Path = c.Args().Get(0)
 		file2Path = c.Args().Get(1)
@@ -105,7 +104,7 @@ func diffAction(c *cli.Context) error {
 			return fmt.Errorf("error generating keys comparison YAML: %v", err)
 		}
 	case "string":
-		updatedYAML, err = compareYAMLFilesLineByLine(file1Path, file2Path)
+		updatedYAML, err = actions.CompareYAMLFilesLineByLine(file1Path, file2Path)
 		if err != nil {
 			return fmt.Errorf("error comparing files line by line: %v", err)
 		}
@@ -119,7 +118,7 @@ func diffAction(c *cli.Context) error {
 	}
 
 	// Output the changes
-	color.New(color.FgHiYellow).Println("Announcing changes:")
+	_, _ = color.New(color.FgHiYellow).Println("Announcing changes:")
 	fmt.Println(updatedYAML)
 
 	if approved {
@@ -135,77 +134,24 @@ func diffAction(c *cli.Context) error {
 
 		fmt.Println("Successfully drained keys from file2 to output file.")
 
-		// Handle GitLab merge request if GitLab flags are set
-		gitlabURL := c.String("gitlab-url")
-		gitlabToken := c.String("gitlab-token")
-		projectID := c.String("project-id")
-		baseBranch := c.String("base-branch")
-		newBranch := c.String("new-branch")
-		targetBranch := c.String("target-branch")
-
-		if gitlabURL != "" && gitlabToken != "" && projectID != "" && baseBranch != "" && newBranch != "" && targetBranch != "" {
-			err = actions.HandleGitLabMergeRequest(gitlabURL, gitlabToken, outputPath, baseBranch, newBranch, targetBranch, projectID)
-			if err != nil {
-				return fmt.Errorf("error handling GitLab merge request: %v", err)
-			}
-		}
+		//// Handle GitLab merge request if GitLab flags are set
+		//gitlabURL := c.String("gitlabs-url")
+		//gitlabToken := c.String("gitlabs-token")
+		//projectID := c.String("project-id")
+		//baseBranch := c.String("base-branch")
+		//newBranch := c.String("new-branch")
+		//targetBranch := c.String("target-branch")
+		//
+		//if gitlabURL != "" && gitlabToken != "" && projectID != "" && baseBranch != "" && newBranch != "" && targetBranch != "" {
+		//	err = actions.HandleGitLabMergeRequest(gitlabURL, gitlabToken, outputPath, outputPath, baseBranch, newBranch, targetBranch, projectID)
+		//	if err != nil {
+		//		return fmt.Errorf("error handling GitLab merge request: %v", err)
+		//	}
+		//}
 
 	} else {
 		fmt.Printf("Run the command with --approved to apply these changes for %v\n", color.New(color.FgYellow).Sprint(outputPath))
 	}
 
 	return nil
-}
-
-func compareYAMLFilesLineByLine(file1Path, file2Path string) (string, error) {
-	file1, err := os.Open(file1Path)
-	if err != nil {
-		return "", fmt.Errorf("error opening file1: %v", err)
-	}
-	defer file1.Close()
-
-	file2, err := os.Open(file2Path)
-	if err != nil {
-		return "", fmt.Errorf("error opening file2: %v", err)
-	}
-	defer file2.Close()
-
-	var result strings.Builder
-
-	scanner1 := bufio.NewScanner(file1)
-	scanner2 := bufio.NewScanner(file2)
-
-	lineNum := 1
-	for scanner1.Scan() || scanner2.Scan() {
-		line1 := ""
-		if scanner1.Scan() {
-			line1 = scanner1.Text()
-		}
-		line2 := ""
-		if scanner2.Scan() {
-			line2 = scanner2.Text()
-		}
-
-		if line1 != line2 {
-			if line1 != "" {
-				color.New(color.FgHiRed).Fprintf(&result, "%d: - %s\n", lineNum, line1)
-			}
-			if line2 != "" {
-				color.New(color.FgHiGreen).Fprintf(&result, "%d: + %s\n", lineNum, line2)
-			}
-		} else {
-			result.WriteString(fmt.Sprintf("%d:   %s\n", lineNum, line1))
-		}
-
-		lineNum++
-	}
-
-	if err := scanner1.Err(); err != nil {
-		return "", fmt.Errorf("error reading file1: %v", err)
-	}
-	if err := scanner2.Err(); err != nil {
-		return "", fmt.Errorf("error reading file2: %v", err)
-	}
-
-	return result.String(), nil
 }

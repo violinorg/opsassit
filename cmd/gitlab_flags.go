@@ -43,10 +43,5 @@ func addGitLabFlags(flags []cli.Flag) []cli.Flag {
 			Usage: "GitLab target branch",
 			//EnvVars: []string{"OA_GITLAB_TARGET_BRANCH"},
 		},
-		//&cli.BoolFlag{
-		//	Name:    "auto-mr",
-		//	Usage:   "Automatically create a merge request in GitLab",
-		//	EnvVars: []string{"OA_GITLAB_AUTO_MR"},
-		//},
 	)
 }

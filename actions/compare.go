@@ -1,12 +1,13 @@
 package actions
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/google/go-cmp/cmp"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	"regexp"
+	"os"
 	"sort"
 	"strings"
 )
@@ -125,8 +126,55 @@ func CompareValues(vars1, vars2 *OrderedMap) map[string][2]interface{} {
 	return differences
 }
 
-// Функция для удаления цветовых указателей из строки
-func removeColorCodes(input string) string {
-	colorCodeRegex := regexp.MustCompile(`\x1b\[[0-9;]*[mK]`)
-	return colorCodeRegex.ReplaceAllString(input, "")
+func CompareYAMLFilesLineByLine(file1Path, file2Path string) (string, error) {
+	file1, err := os.Open(file1Path)
+	if err != nil {
+		return "", fmt.Errorf("error opening file1: %v", err)
+	}
+	defer file1.Close()
+
+	file2, err := os.Open(file2Path)
+	if err != nil {
+		return "", fmt.Errorf("error opening file2: %v", err)
+	}
+	defer file2.Close()
+
+	var result strings.Builder
+
+	scanner1 := bufio.NewScanner(file1)
+	scanner2 := bufio.NewScanner(file2)
+
+	lineNum := 1
+	for scanner1.Scan() || scanner2.Scan() {
+		line1 := ""
+		if scanner1.Scan() {
+			line1 = scanner1.Text()
+		}
+		line2 := ""
+		if scanner2.Scan() {
+			line2 = scanner2.Text()
+		}
+
+		if line1 != line2 {
+			if line1 != "" {
+				color.New(color.FgHiRed).Fprintf(&result, "%d: - %s\n", lineNum, line1)
+			}
+			if line2 != "" {
+				color.New(color.FgHiGreen).Fprintf(&result, "%d: + %s\n", lineNum, line2)
+			}
+		} else {
+			result.WriteString(fmt.Sprintf("%d:   %s\n", lineNum, line1))
+		}
+
+		lineNum++
+	}
+
+	if err := scanner1.Err(); err != nil {
+		return "", fmt.Errorf("error reading file1: %v", err)
+	}
+	if err := scanner2.Err(); err != nil {
+		return "", fmt.Errorf("error reading file2: %v", err)
+	}
+
+	return result.String(), nil
 }

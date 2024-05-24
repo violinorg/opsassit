@@ -11,25 +11,28 @@ import (
 
 func TestAutoMrCmd(t *testing.T) {
 	// Set up environment variables
-	filePath := filepath.Join("gitlab", "file.yaml")
-	os.Setenv("OA_GITLAB_AUTOMR_FILE_PATH", filePath)
-	os.Setenv("OA_GITLAB_URL", "https://gitlab.example.com")
-	os.Setenv("OA_GITLAB_TOKEN", "your-token")
-	os.Setenv("OA_GITLAB_PROJECT_ID", "12345")
+	srcFilePath := filepath.Join("diff", "expected", "expected_format_all.txt")
+	filePath := filepath.Join("configs", "app_config.yaml")
+	os.Setenv("OA_GITLAB_SOURCE_FILE_PATH", srcFilePath)
+	os.Setenv("OA_GITLAB_FILE_PATH", filePath)
+	os.Setenv("OA_GITLAB_URL", "https://gitlab.com")
+	os.Setenv("OA_GITLAB_TOKEN", "glpat-c8jsUhzPpQuic-abxXMX")
+	os.Setenv("OA_GITLAB_PROJECT_ID", "58164058")
 	os.Setenv("OA_GITLAB_BASE_BRANCH", "main")
-	os.Setenv("OA_GITLAB_NEW_BRANCH", "feature-branch")
-	os.Setenv("OA_GITLAB_TARGET_BRANCH", "develop")
+	os.Setenv("OA_GITLAB_NEW_BRANCH", "feature/oa-branch")
+	os.Setenv("OA_GITLAB_TARGET_BRANCH", "main")
 
 	// Ensure the test directory and file exist
 	err := os.MkdirAll(filepath.Dir(filePath), 0755)
 	if err != nil {
 		t.Fatalf("Failed to create test directory: %v", err)
 	}
+
 	err = os.WriteFile(filePath, []byte("test_key: test_value"), 0644)
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
-	defer os.RemoveAll(filepath.Dir(filePath))
+	//defer os.RemoveAll(filepath.Dir(filePath))
 
 	// Set up the CLI app
 	app := cli.NewApp()
@@ -38,7 +41,7 @@ func TestAutoMrCmd(t *testing.T) {
 	}
 
 	// Run the CLI app with the auto-mr command
-	err = app.Run([]string{"app", "gitlab", "auto-mr"})
+	err = app.Run([]string{"app", "gitlabs", "auto-mr"})
 	if err != nil {
 		t.Fatalf("Failed to run auto-mr command: %v", err)
 	}

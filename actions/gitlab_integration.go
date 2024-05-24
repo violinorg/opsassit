@@ -96,7 +96,7 @@ func MergeRequestExists(client *gitlab.Client, projectID int, sourceBranch, targ
 }
 
 // CreateMergeRequest создает merge request в GitLab
-func CreateMergeRequest(client *gitlab.Client, projectID int, sourceBranch, targetBranch, title, description string) error {
+func CreateMergeRequest(client *gitlab.Client, projectID int, sourceBranch, targetBranch, title, description string, squash bool) error {
 	mrExists, err := MergeRequestExists(client, projectID, sourceBranch, targetBranch)
 	if err != nil {
 		return err
@@ -112,6 +112,8 @@ func CreateMergeRequest(client *gitlab.Client, projectID int, sourceBranch, targ
 		TargetBranch: &targetBranch,
 		Title:        gitlab.String(title),
 		Description:  gitlab.String(description),
+		Squash:       &squash,
+		RemoveSourceBranch:
 	})
 	if err != nil {
 		return fmt.Errorf("error creating merge request: %v", err)
@@ -121,7 +123,7 @@ func CreateMergeRequest(client *gitlab.Client, projectID int, sourceBranch, targ
 }
 
 // HandleGitLabMergeRequest выполняет все действия для создания merge request в GitLab
-func HandleGitLabMergeRequest(gitlabURL, gitlabToken, filePath, baseBranch, newBranch, targetBranch, projectID string) error {
+func HandleGitLabMergeRequest(gitlabURL, gitlabToken, srcFilePath, filePath, baseBranch, newBranch, targetBranch, projectID string) error {
 	client, err := CreateGitLabClient(gitlabURL, gitlabToken)
 	if err != nil {
 		return err
@@ -132,7 +134,7 @@ func HandleGitLabMergeRequest(gitlabURL, gitlabToken, filePath, baseBranch, newB
 		return fmt.Errorf("invalid project ID: %v", err)
 	}
 
-	content, err := ReadFileContent(filePath)
+	content, err := ReadFileContent(srcFilePath)
 	if err != nil {
 		return err
 	}
@@ -147,7 +149,7 @@ func HandleGitLabMergeRequest(gitlabURL, gitlabToken, filePath, baseBranch, newB
 		return err
 	}
 
-	err = CreateMergeRequest(client, projectIDInt, newBranch, targetBranch, "Drained keys from file2 to output file", "This merge request contains the changes after draining keys from file2 to the output file.")
+	err = CreateMergeRequest(client, projectIDInt, newBranch, targetBranch, "Drained keys from file2 to output file", "This merge request contains the changes after draining keys from file2 to the output file.", true)
 	if err != nil {
 		return err
 	}
