@@ -41,7 +41,7 @@ func TestAutoMrCmd(t *testing.T) {
 	}
 
 	// Run the CLI app with the auto-mr command
-	err = app.Run([]string{"app", "gitlabs", "auto-mr"})
+	err = app.Run([]string{"app", "gitlab", "auto-mr"})
 	if err != nil {
 		t.Fatalf("Failed to run auto-mr command: %v", err)
 	}
