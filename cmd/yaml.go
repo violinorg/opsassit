@@ -135,8 +135,8 @@ func diffAction(c *cli.Context) error {
 		fmt.Println("Successfully drained keys from file2 to output file.")
 
 		//// Handle GitLab merge request if GitLab flags are set
-		//gitlabURL := c.String("gitlabs-url")
-		//gitlabToken := c.String("gitlabs-token")
+		//gitlabURL := c.String("gitlab-url")
+		//gitlabToken := c.String("gitlab-token")
 		//projectID := c.String("project-id")
 		//baseBranch := c.String("base-branch")
 		//newBranch := c.String("new-branch")

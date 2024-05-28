@@ -11,16 +11,16 @@ import (
 
 func TestAutoMrCmd(t *testing.T) {
 	// Set up environment variables
-	srcFilePath := filepath.Join("diff", "expected", "expected_format_all.txt")
+	srcFilePath := filepath.Join("gitlab", "data", "output_format_all.yaml")
 	filePath := filepath.Join("configs", "app_config.yaml")
 	os.Setenv("OA_GITLAB_SOURCE_FILE_PATH", srcFilePath)
 	os.Setenv("OA_GITLAB_FILE_PATH", filePath)
 	os.Setenv("OA_GITLAB_URL", "https://gitlab.com")
 	os.Setenv("OA_GITLAB_TOKEN", "glpat-c8jsUhzPpQuic-abxXMX")
 	os.Setenv("OA_GITLAB_PROJECT_ID", "58164058")
-	os.Setenv("OA_GITLAB_BASE_BRANCH", "main")
-	os.Setenv("OA_GITLAB_NEW_BRANCH", "feature/oa-branch")
-	os.Setenv("OA_GITLAB_TARGET_BRANCH", "main")
+	os.Setenv("OA_GITLAB_MR_BASE_BRANCH", "main")
+	os.Setenv("OA_GITLAB_MR_NEW_BRANCH", "feature/oa-branch")
+	os.Setenv("OA_GITLAB_MR_TARGET_BRANCH", "main")
 
 	// Ensure the test directory and file exist
 	err := os.MkdirAll(filepath.Dir(filePath), 0755)
@@ -32,7 +32,7 @@ func TestAutoMrCmd(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
-	//defer os.RemoveAll(filepath.Dir(filePath))
+	defer os.RemoveAll(filepath.Dir(filePath))
 
 	// Set up the CLI app
 	app := cli.NewApp()
