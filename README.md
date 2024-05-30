@@ -22,6 +22,18 @@ The project is intended to simplify the life of support engineers in checking co
   go build -o opsassist main.go
   ```
 
+## Tests
+
+Full test run
+  ```bash
+  go test ./tests -v
+  ```
+
+Example of running a separate test by name DiffCmd
+  ```bash
+  go test ./tests -v -run DiffCmd
+  ```
+
 ## Authors and acknowledgment
 Author: [Dmitry Sidyuk](violinorg@yandex.ru)
 

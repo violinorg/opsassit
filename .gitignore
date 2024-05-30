@@ -8,7 +8,7 @@ dist/
 builds/
 files/
 # Development
-dev.local
+*.env
 
 ### Linux template
 *~

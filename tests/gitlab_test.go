@@ -2,47 +2,53 @@ package tests
 
 import (
 	"os"
-	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli/v2"
 	"github.com/violinorg/opsassit/cmd"
 )
 
-func TestAutoMrCmd(t *testing.T) {
-	// Set up environment variables
-	srcFilePath := filepath.Join("gitlab", "data", "output_format_all.yaml")
-	filePath := filepath.Join("configs", "app_config.yaml")
-	os.Setenv("OA_GITLAB_SOURCE_FILE_PATH", srcFilePath)
-	os.Setenv("OA_GITLAB_FILE_PATH", filePath)
-	os.Setenv("OA_GITLAB_URL", "https://gitlab.com")
-	os.Setenv("OA_GITLAB_TOKEN", "glpat-c8jsUhzPpQuic-abxXMX")
-	os.Setenv("OA_GITLAB_PROJECT_ID", "58164058")
-	os.Setenv("OA_GITLAB_MR_BASE_BRANCH", "main")
-	os.Setenv("OA_GITLAB_MR_NEW_BRANCH", "feature/oa-branch")
-	os.Setenv("OA_GITLAB_MR_TARGET_BRANCH", "main")
-
-	// Ensure the test directory and file exist
-	err := os.MkdirAll(filepath.Dir(filePath), 0755)
-	if err != nil {
-		t.Fatalf("Failed to create test directory: %v", err)
-	}
-
-	err = os.WriteFile(filePath, []byte("test_key: test_value"), 0644)
-	if err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
-	defer os.RemoveAll(filepath.Dir(filePath))
-
-	// Set up the CLI app
+func TestGitLabAll(t *testing.T) {
 	app := cli.NewApp()
 	app.Commands = []*cli.Command{
 		cmd.GitlabCmd(),
 	}
 
-	// Run the CLI app with the auto-mr command
-	err = app.Run([]string{"app", "gitlab", "auto-mr"})
-	if err != nil {
-		t.Fatalf("Failed to run auto-mr command: %v", err)
+	for _, test := range GitLabTestCases {
+		t.Run(test.Name, func(t *testing.T) {
+
+			for key, value := range test.EnvVars {
+				os.Setenv(key, value)
+			}
+
+			setFlags := map[string]string{}
+			app.Commands[0].Subcommands[0].Action = func(c *cli.Context) error {
+				setFlags["gitlab-url"] = c.String("gitlab-url")
+				setFlags["gitlab-token"] = c.String("gitlab-token")
+				setFlags["gitlab-project-id"] = c.String("gitlab-project-id")
+				setFlags["mr-base-branch"] = c.String("mr-base-branch")
+				setFlags["mr-new-branch"] = c.String("mr-new-branch")
+				setFlags["mr-target-branch"] = c.String("mr-target-branch")
+				setFlags["mr-title"] = c.String("mr-title")
+				setFlags["mr-description"] = c.String("mr-description")
+				setFlags["mr-squash"] = c.String("mr-squash")
+				setFlags["mr-remove-source-branch"] = c.String("mr-remove-source-branch")
+				setFlags["src-file-path"] = c.String("src-file-path")
+				setFlags["file-path"] = c.String("file-path")
+				return nil
+			}
+
+			err := app.Run(test.Args)
+			assert.NoError(t, err)
+
+			for key, expectedValue := range test.Expected {
+				assert.Equal(t, expectedValue, setFlags[key])
+			}
+
+			for key := range test.EnvVars {
+				os.Unsetenv(key)
+			}
+		})
 	}
 }
